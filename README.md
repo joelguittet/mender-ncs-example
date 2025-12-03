@@ -1,8 +1,18 @@
 # mender-ncs-example
 
-[![CI Badge](https://github.com/joelguittet/mender-ncs-example/workflows/ci/badge.svg)](https://github.com/joelguittet/mender-ncs-example/actions)
+[![Workflow check-code-format Badge](https://github.com/joelguittet/mender-ncs-example/workflows/check-code-format/badge.svg)](https://github.com/joelguittet/mender-ncs-example/actions)
 [![Issues Badge](https://img.shields.io/github/issues/joelguittet/mender-ncs-example)](https://github.com/joelguittet/mender-ncs-example/issues)
 [![License Badge](https://img.shields.io/github/license/joelguittet/mender-ncs-example)](https://github.com/joelguittet/mender-ncs-example/blob/master/LICENSE)
+
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=joelguittet_mender-ncs-example&metric=bugs)](https://sonarcloud.io/dashboard?id=joelguittet_mender-ncs-example)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=joelguittet_mender-ncs-example&metric=code_smells)](https://sonarcloud.io/dashboard?id=joelguittet_mender-ncs-example)
+[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=joelguittet_mender-ncs-example&metric=duplicated_lines_density)](https://sonarcloud.io/dashboard?id=joelguittet_mender-ncs-example)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=joelguittet_mender-ncs-example&metric=ncloc)](https://sonarcloud.io/dashboard?id=joelguittet_mender-ncs-example)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=joelguittet_mender-ncs-example&metric=vulnerabilities)](https://sonarcloud.io/dashboard?id=joelguittet_mender-ncs-example)
+
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=joelguittet_mender-ncs-example&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=joelguittet_mender-ncs-example)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=joelguittet_mender-ncs-example&metric=reliability_rating)](https://sonarcloud.io/dashboard?id=joelguittet_mender-ncs-example)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=joelguittet_mender-ncs-example&metric=security_rating)](https://sonarcloud.io/dashboard?id=joelguittet_mender-ncs-example)
 
 [Mender MCU client](https://github.com/joelguittet/mender-mcu-client) is an open source over-the-air (OTA) library updater for MCU devices. This demonstration project runs on nRF7002-DK hardware using nRF Connect SDK based on Zephyr RTOS.
 
