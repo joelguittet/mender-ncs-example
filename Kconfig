@@ -1,5 +1,5 @@
 # @file      Kconfig
-# @brief     mender-ncs-example project Kconfig file
+# @brief     mender-ncs-example Kconfig file
 #
 # Copyright joelguittet and mender-mcu-client contributors
 #
@@ -14,60 +14,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-menu "Zephyr"
-
-    source "Kconfig.zephyr"
-
-endmenu
-
-menu "Application"
-
-    config EXAMPLE_ARTIFACT_NAME_PREFIX
-        string "Artifact name"
-        help
-            Define the artifact name prefix.
-
-    config EXAMPLE_DEVICE_TYPE
-        string "Device type"
-        help
-            Define the device type.
-
-    config EXAMPLE_WIFI_SSID
-        string "Wi-Fi network SSID"
-        depends on WIFI
-        help
-            Defines the Wi-Fi network SSID.
-
-    config EXAMPLE_WIFI_PSK
-        string "Wi-Fi network Pre-Shared Key (PSK)"
-        depends on WIFI && !EXAMPLE_WIFI_AUTHENTICATION_MODE_NONE
-        help
-            Defines the Wi-Fi network Pre-Shared Key (PSK).
-
-    choice EXAMPLE_WIFI_AUTHENTICATION_MODE
-        prompt "Wi-Fi network authentication mode"
-        default EXAMPLE_WIFI_AUTHENTICATION_MODE_WPA2_PSK
-        depends on WIFI
-        help
-            Defines the Wi-Fi network authentication mode.
-
-        config EXAMPLE_WIFI_AUTHENTICATION_MODE_WPA2_PSK
-            bool "WPA2-PSK"
-        config EXAMPLE_WIFI_AUTHENTICATION_MODE_WPA3_SAE
-            bool "WPA3-SAE"
-        config EXAMPLE_WIFI_AUTHENTICATION_MODE_NONE
-            bool "None"
-    endchoice
-
-    config EXAMPLE_AUTHENTICATION_FAILS_MAX_TRIES
-        int "Maximum number of retries when Mender client authentification fails"
-        default 3
-        help
-            Defines the number of retries when the Mender client authentification fails before the artifact is considered invalid and the rollback is done.
-
-    module = APP
-    module-str = Application
-    source "subsys/logging/Kconfig.template.log_config"
-
-endmenu

@@ -1,5 +1,5 @@
-# @file      CMakeLists.txt
-# @brief     mender-ncs-example CMakeLists file
+# @file      Kconfig
+# @brief     msgpack-c library Kconfig file
 #
 # Copyright joelguittet and mender-mcu-client contributors
 #
@@ -14,3 +14,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+menuconfig MSGPACK_C
+    bool "MessagePack implementation for C and C++"
+    help
+        MessagePack is an efficient binary serialization format, which lets you
+        exchange data among multiple languages like JSON, except that it's faster
+        and smaller.

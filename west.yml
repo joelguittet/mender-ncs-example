@@ -1,0 +1,61 @@
+# @file      west.yml
+# @brief     mender-ncs-example west manifest file
+#
+# Copyright joelguittet and mender-mcu-client contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+manifest:
+  self:
+    west-commands: scripts/west-commands.yml
+
+  remotes:
+    - name: nrfconnect
+      url-base: https://github.com/nrfconnect
+    - name: joelguittet
+      url-base: https://github.com/joelguittet
+
+  projects:
+    - name: nrf
+      remote: nrfconnect
+      repo-path: sdk-nrf
+      revision: v3.0.2
+      import:
+        # By using name-allowlist we can clone only the modules that are
+        # strictly needed by the application
+        name-allowlist:
+          - hostap
+          - mcuboot
+          - mbedtls
+          - oberon-psa-crypto
+          - nrfxlib
+          - trusted-firmware-m
+          - cjson
+    - name: zephyr
+      remote: nrfconnect
+      repo-path: sdk-zephyr
+      revision: v4.0.99-ncs1-2
+      import:
+        # By using name-allowlist we can clone only the modules that are
+        # strictly needed by the application
+        name-allowlist:
+          - cmsis
+          - hal_nordic
+          - littlefs
+          - nrf_hw_models
+          - nrf_wifi
+          - picolibc
+    - name: mender-mcu-client
+      remote: joelguittet
+      revision: 0.12.3
+      path: modules/lib/mender-mcu-client

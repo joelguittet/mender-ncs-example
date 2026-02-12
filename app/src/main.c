@@ -17,6 +17,8 @@
  * limitations under the License.
  */
 
+#include <assert.h>
+
 #include <app_version.h>
 #include <ncs_version.h>
 #include <version.h>
@@ -348,7 +350,7 @@ file_transfer_open_cb(char *path, char *mode, void **handle) {
         }
     } else {
         if ((err = fs_open(file, path, FS_O_CREATE | FS_O_WRITE)) < 0) {
-            LOG_ERR("Unable to open file '%s'  (err=%d)", path, err);
+            LOG_ERR("Unable to open file '%s' (err=%d)", path, err);
             free(file);
             return MENDER_FAIL;
         }
@@ -421,6 +423,7 @@ int
 main(void) {
 
     /* Initialize network */
+    LOG_INF("Initialization of network interface");
     struct net_if *iface = net_if_get_default();
     assert(NULL != iface);
     net_mgmt_init_event_callback(&mgmt_cb, net_event_handler, NET_EVENT_IPV4_ADDR_ADD);
@@ -459,6 +462,7 @@ main(void) {
 
 #ifdef CONFIG_NET_SOCKETS_SOCKOPT_TLS
     /* Initialize certificate */
+    LOG_INF("Initialization of certificate(s)");
     tls_credential_add(CONFIG_MENDER_NET_CA_CERTIFICATE_TAG_PRIMARY, TLS_CREDENTIAL_CA_CERTIFICATE, ca_certificate_primary, sizeof(ca_certificate_primary));
 #if (0 != CONFIG_MENDER_NET_CA_CERTIFICATE_TAG_SECONDARY)
     tls_credential_add(
@@ -507,8 +511,11 @@ main(void) {
                                                           .authentication_failure = authentication_failure_cb,
                                                           .deployment_status      = deployment_status_cb,
                                                           .restart                = restart_cb };
-    assert(MENDER_OK == mender_client_init(&mender_client_config, &mender_client_callbacks));
-    LOG_INF("Mender client initialized");
+    if (MENDER_OK != mender_client_init(&mender_client_config, &mender_client_callbacks)) {
+        LOG_ERR("Unable to initialize mender client");
+        goto RESTART;
+    }
+    LOG_INF("Mender client version '%s' initialized", mender_client_version());
 
     /* Initialize mender add-ons */
 #ifdef CONFIG_MENDER_CLIENT_ADD_ON_CONFIGURE
@@ -518,18 +525,24 @@ main(void) {
         .config_updated = config_updated_cb,
 #endif /* CONFIG_MENDER_CLIENT_CONFIGURE_STORAGE */
     };
-    assert(MENDER_OK
-           == mender_client_register_addon(
-               (mender_addon_instance_t *)&mender_configure_addon_instance, (void *)&mender_configure_config, (void *)&mender_configure_callbacks));
+    if (MENDER_OK
+        != mender_client_register_addon(
+            (mender_addon_instance_t *)&mender_configure_addon_instance, (void *)&mender_configure_config, (void *)&mender_configure_callbacks)) {
+        LOG_ERR("Unable to register configure add-on");
+        goto RELEASE;
+    }
     LOG_INF("Mender configure add-on registered");
 #endif /* CONFIG_MENDER_CLIENT_ADD_ON_CONFIGURE */
 #ifdef CONFIG_MENDER_CLIENT_ADD_ON_INVENTORY
     mender_inventory_config_t mender_inventory_config = { .refresh_interval = 0 };
-    assert(MENDER_OK == mender_client_register_addon((mender_addon_instance_t *)&mender_inventory_addon_instance, (void *)&mender_inventory_config, NULL));
+    if (MENDER_OK != mender_client_register_addon((mender_addon_instance_t *)&mender_inventory_addon_instance, (void *)&mender_inventory_config, NULL)) {
+        LOG_ERR("Unable to register inventory add-on");
+        goto RELEASE;
+    }
     LOG_INF("Mender inventory add-on registered");
 #endif /* CONFIG_MENDER_CLIENT_ADD_ON_INVENTORY */
 #ifdef CONFIG_MENDER_CLIENT_ADD_ON_TROUBLESHOOT
-    mender_troubleshoot_config_t    mender_troubleshoot_config    = { .healthcheck_interval = 0 };
+    mender_troubleshoot_config_t    mender_troubleshoot_config    = { .host = NULL, .healthcheck_interval = 0 };
     mender_troubleshoot_callbacks_t mender_troubleshoot_callbacks = {
 #ifdef CONFIG_MENDER_CLIENT_TROUBLESHOOT_FILE_TRANSFER
         .file_transfer = { .stat  = file_transfer_stat_cb,
@@ -537,17 +550,20 @@ main(void) {
                            .read  = file_transfer_read_cb,
                            .write = file_transfer_write_cb,
                            .close = file_transfer_close_cb },
+#endif /* CONFIG_MENDER_CLIENT_TROUBLESHOOT_FILE_TRANSFER */
 #ifdef CONFIG_MENDER_CLIENT_TROUBLESHOOT_PORT_FORWARDING
         .port_forwarding = { .connect = NULL, .send = NULL, .close = NULL },
 #endif /* CONFIG_MENDER_CLIENT_TROUBLESHOOT_PORT_FORWARDING */
-#endif /* CONFIG_MENDER_CLIENT_TROUBLESHOOT_FILE_TRANSFER */
 #ifdef CONFIG_MENDER_CLIENT_TROUBLESHOOT_SHELL
         .shell = { .open = mender_shell_open, .resize = mender_shell_resize, .write = mender_shell_write, .close = mender_shell_close }
 #endif /* CONFIG_MENDER_CLIENT_TROUBLESHOOT_SHELL */
     };
-    assert(MENDER_OK
-           == mender_client_register_addon(
-               (mender_addon_instance_t *)&mender_troubleshoot_addon_instance, (void *)&mender_troubleshoot_config, (void *)&mender_troubleshoot_callbacks));
+    if (MENDER_OK
+        != mender_client_register_addon(
+            (mender_addon_instance_t *)&mender_troubleshoot_addon_instance, (void *)&mender_troubleshoot_config, (void *)&mender_troubleshoot_callbacks)) {
+        LOG_ERR("Unable to register troubleshoot add-on");
+        goto RELEASE;
+    }
     LOG_INF("Mender troubleshoot add-on registered");
 #endif /* CONFIG_MENDER_CLIENT_ADD_ON_TROUBLESHOOT */
 
@@ -555,7 +571,8 @@ main(void) {
     /* Get mender configuration (this is just an example to illustrate the API) */
     mender_keystore_t *configuration;
     if (MENDER_OK != mender_configure_get(&configuration)) {
-        LOG_ERR("Unable to get mender configuration");
+        LOG_ERR("Unable to get mender device configuration");
+        goto RELEASE;
     } else if (NULL != configuration) {
         size_t index = 0;
         LOG_INF("Device configuration retrieved");
@@ -564,6 +581,8 @@ main(void) {
             index++;
         }
         mender_utils_keystore_delete(configuration);
+    } else {
+        LOG_INF("Mender device configuration is empty");
     }
 #endif /* CONFIG_MENDER_CLIENT_ADD_ON_CONFIGURE */
 
@@ -577,6 +596,7 @@ main(void) {
                                       { .name = NULL, .value = NULL } };
     if (MENDER_OK != mender_inventory_set(inventory)) {
         LOG_ERR("Unable to set mender inventory");
+        goto RELEASE;
     }
 #endif /* CONFIG_MENDER_CLIENT_ADD_ON_INVENTORY */
 
@@ -594,6 +614,8 @@ RELEASE:
     /* Deactivate and release mender-client */
     mender_client_deactivate();
     mender_client_exit();
+
+RESTART:
 
     /* Restart */
     LOG_INF("Restarting system");

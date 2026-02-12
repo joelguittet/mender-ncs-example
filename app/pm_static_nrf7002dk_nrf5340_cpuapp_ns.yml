@@ -1,0 +1,219 @@
+# @file      pm_static_nrf7002dk_nrf5340_cpuapp_ns.yml
+# @brief     nRF7002-DK cpuapp non-secure project partition manager configuration file
+#
+# Copyright joelguittet and mender-mcu-client contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+EMPTY_0:
+  address: 0xfa000
+  end_address: 0xfc000
+  placement:
+    after:
+    - tfm_otp_nv_counters
+  region: flash_primary
+  size: 0x2000
+EMPTY_1:
+  address: 0xf6000
+  end_address: 0xf8000
+  placement:
+    after:
+    - tfm_its
+  region: flash_primary
+  size: 0x2000
+app:
+  address: 0x30000
+  end_address: 0xf4000
+  region: flash_primary
+  size: 0xc4000
+external_flash:
+  address: 0xe4000
+  end_address: 0x800000
+  region: external_flash
+  size: 0x71c000
+mcuboot:
+  address: 0x0
+  end_address: 0x10000
+  placement:
+    align:
+      end: 0x1000
+    before:
+    - mcuboot_primary
+  region: flash_primary
+  size: 0x10000
+mcuboot_pad:
+  address: 0x10000
+  end_address: 0x10200
+  placement:
+    align:
+      start: 0x4000
+    before:
+    - mcuboot_primary_app
+  region: flash_primary
+  size: 0x200
+mcuboot_primary:
+  address: 0x10000
+  end_address: 0xf4000
+  orig_span: &id001
+  - app
+  - mcuboot_pad
+  - tfm
+  region: flash_primary
+  size: 0xe4000
+  span: *id001
+mcuboot_primary_app:
+  address: 0x10200
+  end_address: 0xf4000
+  orig_span: &id002
+  - app
+  - tfm
+  region: flash_primary
+  size: 0xe3e00
+  span: *id002
+mcuboot_secondary:
+  address: 0x0
+  device: DT_CHOSEN(nordic_pm_ext_flash)
+  end_address: 0xe4000
+  placement:
+    align:
+      start: 0x4
+  region: external_flash
+  share_size:
+  - mcuboot_primary
+  size: 0xe4000
+mcuboot_sram:
+  address: 0x20000000
+  end_address: 0x2000c000
+  orig_span: &id003
+  - tfm_sram
+  region: sram_primary
+  size: 0xc000
+  span: *id003
+otp:
+  address: 0xff8100
+  end_address: 0xff83fc
+  region: otp
+  size: 0x2fc
+rpmsg_nrf53_sram:
+  address: 0x20070000
+  end_address: 0x20080000
+  placement:
+    before:
+    - end
+  region: sram_primary
+  size: 0x10000
+sram_nonsecure:
+  address: 0x2000c000
+  end_address: 0x20080000
+  orig_span: &id004
+  - sram_primary
+  - rpmsg_nrf53_sram
+  region: sram_primary
+  size: 0x74000
+  span: *id004
+sram_primary:
+  address: 0x2000c000
+  end_address: 0x20070000
+  region: sram_primary
+  size: 0x64000
+sram_secure:
+  address: 0x20000000
+  end_address: 0x2000c000
+  orig_span: &id005
+  - tfm_sram
+  region: sram_primary
+  size: 0xc000
+  span: *id005
+tfm:
+  address: 0x10200
+  end_address: 0x30000
+  inside:
+  - mcuboot_primary_app
+  placement:
+    before:
+    - app
+  region: flash_primary
+  size: 0x1fe00
+tfm_its:
+  address: 0xf4000
+  end_address: 0xf6000
+  inside:
+  - tfm_storage
+  placement:
+    align:
+      start: 0x4000
+    before:
+    - tfm_otp_nv_counters
+  region: flash_primary
+  size: 0x2000
+tfm_nonsecure:
+  address: 0x30000
+  end_address: 0xf4000
+  orig_span: &id006
+  - app
+  region: flash_primary
+  size: 0xc4000
+  span: *id006
+tfm_otp_nv_counters:
+  address: 0xf8000
+  end_address: 0xfa000
+  inside:
+  - tfm_storage
+  placement:
+    align:
+      start: 0x4000
+    before:
+    - tfm_ps
+  region: flash_primary
+  size: 0x2000
+tfm_ps:
+  address: 0xfc000
+  end_address: 0x100000
+  inside:
+  - tfm_storage
+  placement:
+    align:
+      start: 0x4000
+    before:
+    - end
+  region: flash_primary
+  size: 0x4000
+tfm_secure:
+  address: 0x10000
+  end_address: 0x30000
+  orig_span: &id007
+  - mcuboot_pad
+  - tfm
+  region: flash_primary
+  size: 0x20000
+  span: *id007
+tfm_sram:
+  address: 0x20000000
+  end_address: 0x2000c000
+  inside:
+  - sram_secure
+  placement:
+    after:
+    - start
+  region: sram_primary
+  size: 0xc000
+tfm_storage:
+  address: 0xf4000
+  end_address: 0x100000
+  orig_span: &id008
+  - tfm_ps
+  - tfm_its
+  - tfm_otp_nv_counters
+  region: flash_primary
+  size: 0xc000
+  span: *id008

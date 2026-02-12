@@ -1,6 +1,3 @@
-[submodule "components/mender-mcu-client"]
-	path = components/mender-mcu-client
-	url = https://github.com/joelguittet/mender-mcu-client.git
-[submodule "components/msgpack-c/msgpack-c"]
-	path = components/msgpack-c/msgpack-c
+[submodule "modules/msgpack-c/msgpack-c"]
+	path = modules/msgpack-c/msgpack-c
 	url = https://github.com/msgpack/msgpack-c.git

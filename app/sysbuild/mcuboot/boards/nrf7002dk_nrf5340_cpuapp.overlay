@@ -1,6 +1,6 @@
 /**
- * @file      nrf7002dk_nrf5340_cpuapp_ns.overlay
- * @brief     nRF7002-DK cpuapp non-secure project overlay
+ * @file      nrf7002dk_nrf5340_cpuapp.overlay
+ * @brief     nRF7002-DK cpuapp mcuboot overlay
  *
  * Copyright joelguittet and mender-mcu-client contributors
  *
@@ -18,12 +18,12 @@
  */
 
 / {
-	/* Configure the partition manager to use the mx25r64 external flash memory */
-	chosen {
-		nordic,pm-ext-flash = &mx25r64;
-	};
+    /* Configure the partition manager to use the mx25r64 external flash memory */
+    chosen {
+        nordic,pm-ext-flash = &mx25r64;
+    };
 };
 
 &mx25r64 {
-	status = "okay";
+    status = "okay";
 };
