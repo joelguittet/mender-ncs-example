@@ -1,5 +1,5 @@
-# @file      prj.conf
-# @brief     mender-ncs-example mcuboot configuration file
+# @file      module.yml
+# @brief     msgpack-c module YAML file
 #
 # Copyright joelguittet and mender-mcu-client contributors
 #
@@ -15,22 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# General
-CONFIG_FLASH=y
-CONFIG_FPROTECT=y
-CONFIG_MAIN_STACK_SIZE=16384
-CONFIG_MINIMAL_LIBC=y
-CONFIG_NCS_APPLICATION_BOOT_BANNER_STRING="MCUboot"
-CONFIG_PM=n
-
-# MCUboot
-CONFIG_BOOT_SIGNATURE_KEY_FILE="bootloader/mcuboot/root-rsa-2048.pem"
-CONFIG_BOOT_SWAP_SAVE_ENCTLV=n
-CONFIG_BOOT_ENCRYPT_IMAGE=n
-CONFIG_BOOT_UPGRADE_ONLY=n
-CONFIG_BOOT_BOOTSTRAP=n
-
-# Logging
-CONFIG_LOG=y
-CONFIG_LOG_MODE_IMMEDIATE=y
-CONFIG_CBPRINTF_NANO=y
+name: msgpack-c
+build:
+    cmake: .
+    kconfig: Kconfig
+security:
+  external-references:
+    - cpe:2.3:a:msgpack:msgpack-c:6.1.0:*:*:*:*:*:*:*
+    - pkg:github/msgpack/msgpack-c@6.1.0

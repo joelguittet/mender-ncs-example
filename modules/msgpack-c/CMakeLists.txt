@@ -1,5 +1,5 @@
 # @file      CMakeLists.txt
-# @brief     msgpack-c module CMakeLists file
+# @brief     msgpack-c library CMakeLists file
 #
 # Copyright joelguittet and mender-mcu-client contributors
 #
@@ -16,15 +16,15 @@
 # limitations under the License.
 
 if(CONFIG_MSGPACK_C)
-    zephyr_include_directories("${CMAKE_CURRENT_LIST_DIR}/../include")
-    zephyr_include_directories("${CMAKE_CURRENT_LIST_DIR}/../include/msgpack")
-    zephyr_include_directories("${CMAKE_CURRENT_LIST_DIR}/../msgpack-c/include")
+    zephyr_include_directories("${CMAKE_CURRENT_LIST_DIR}/include")
+    zephyr_include_directories("${CMAKE_CURRENT_LIST_DIR}/include/msgpack")
+    zephyr_include_directories("${CMAKE_CURRENT_LIST_DIR}/msgpack-c/include")
     zephyr_library()
     zephyr_library_sources(
-        "${CMAKE_CURRENT_LIST_DIR}/../msgpack-c/src/objectc.c"
-        "${CMAKE_CURRENT_LIST_DIR}/../msgpack-c/src/unpack.c"
-        "${CMAKE_CURRENT_LIST_DIR}/../msgpack-c/src/version.c"
-        "${CMAKE_CURRENT_LIST_DIR}/../msgpack-c/src/vrefbuffer.c"
-        "${CMAKE_CURRENT_LIST_DIR}/../msgpack-c/src/zone.c"
+        "${CMAKE_CURRENT_LIST_DIR}/msgpack-c/src/objectc.c"
+        "${CMAKE_CURRENT_LIST_DIR}/msgpack-c/src/unpack.c"
+        "${CMAKE_CURRENT_LIST_DIR}/msgpack-c/src/version.c"
+        "${CMAKE_CURRENT_LIST_DIR}/msgpack-c/src/vrefbuffer.c"
+        "${CMAKE_CURRENT_LIST_DIR}/msgpack-c/src/zone.c"
     )
 endif()
