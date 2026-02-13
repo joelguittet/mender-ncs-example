@@ -23,7 +23,7 @@ This project is used with a [nRF7002-DK](https://www.nordicsemi.com/Products/Dev
 
 ![nRF7002-DK](https://raw.githubusercontent.com/joelguittet/mender-ncs-example/master/.github/docs/nrf7002-dk.png)
 
-The project is built using nRF Connect SDK v3.0.2 and Zephyr SDK v0.16.x. There is no other dependencies.
+The project is built using nRF Connect SDK v3.2.1 and Zephyr SDK v0.17.x. There is no other dependencies.
 
 To start using Mender, we recommend that you begin with the Getting started section in [the Mender documentation](https://docs.mender.io).
 
@@ -90,43 +90,73 @@ west flash
 After flashing the application on the development board and opening a terminal to display the logs, you should be able to see the following:
 
 ```
-[00:00:16.106,597] <inf> mender_ncs_example: Running project 'mender-ncs-example' version '0.1.0'
-[00:00:16.119,628] <inf> mender_ncs_example: Mender client version '0.12.3' initialized
-[00:00:16.130,432] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/storage/generic/psa_its/src/mender-storage.c (165): Device configuration not
+[00:00:00.227,478] <inf> mender_ncs_example: Initialization of network interface
+[00:00:00.231,597] <inf> wifi_supplicant: wpa_supplicant initialized
+[00:00:00.286,407] <inf> mender_ncs_example: Initialization of certificate(s)
+[00:00:00.296,264] <inf> mender_ncs_example: MAC address of the device 'f4:ce:36:00:1f:dc'
+[00:00:00.307,067] <inf> mender_ncs_example: Running project 'mender-ncs-example' version '0.1.0'
+[00:00:00.319,946] <inf> mender_ncs_example: Mender client version '0.12.3' initialized
+[00:00:00.330,780] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/storage/generic/psa_its/src/mender-storage.c (165): Device configuration not
  available (-140)
-[00:00:16.148,895] <inf> mender_ncs_example: Mender configure add-on registered
-[00:00:16.158,813] <inf> mender_ncs_example: Mender inventory add-on registered
-[00:00:16.168,701] <inf> mender_ncs_example: Device configuration retrieved
-[00:00:16.202,758] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/storage/generic/psa_its/src/mender-storage.c (98): Deployment data not avail
+[00:00:00.349,243] <inf> mender_ncs_example: Mender configure add-on registered
+[00:00:00.359,161] <inf> mender_ncs_example: Mender inventory add-on registered
+[00:00:00.369,049] <inf> mender_ncs_example: Device configuration retrieved
+[00:00:00.402,618] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/storage/generic/psa_its/src/mender-storage.c (98): Deployment data not avail
 able (-140)
-[00:00:16.220,611] <inf> mender_ncs_example: Mender client connect network
-[00:00:17.719,818] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
+[00:00:00.420,471] <inf> mender_ncs_example: Mender client connect network
+[00:00:00.429,962] <inf> mender_ncs_example: Connecting to the network
+Connected
+[00:00:17.692,413] <inf> mender_ncs_example: Got IPv4 event: 'NET_EVENT_IPV4_ADDR_ADD'
+[00:00:17.702,911] <inf> mender_ncs_example: IPv4 address: 192.168.1.123
+[00:00:17.712,158] <inf> mender_ncs_example: Lease time: 43200 seconds
+[00:00:17.721,282] <inf> mender_ncs_example: Subnet: 255.255.255.0
+[00:00:17.730,041] <inf> mender_ncs_example: Router: 192.168.1.1
+[00:00:17.739,288] <inf> mender_ncs_example: Connected to the network
+[00:00:18.735,656] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
 43' with IPv4 address '54.174.83.129'
-[00:00:18.200,866] <err> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/core/src/mender-api.c (514): [401] Unauthorized: dev auth: unauthorized
-[00:00:18.217,254] <inf> mender_ncs_example: Mender client authentication failed
-[00:00:18.227,203] <inf> mender_ncs_example: Mender client released network
+[00:00:19.261,474] <err> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/core/src/mender-api.c (514): [401] Unauthorized: dev auth: unauthorized
+[00:00:19.277,801] <inf> mender_ncs_example: Mender client authentication failed
+[00:00:19.287,750] <inf> mender_ncs_example: Mender client released network
+[00:00:29.297,424] <inf> mender_ncs_example: Disconnecting network
+Disconnected
+[00:00:29.324,127] <inf> mender_ncs_example: Got IPv4 event: 'NET_EVENT_IPV4_ADDR_DEL'
+[00:00:29.355,621] <inf> mender_ncs_example: Disconnected of the network
 ```
 
 Which means you now have generated authentication keys on the device. You now have to accept your device on the mender interface. Once it is accepted on the mender interface the following will be displayed:
 
 ```
-[00:01:16.178,527] <inf> mender_ncs_example: Mender client connect network
-[00:01:17.225,952] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
-43' with IPv4 address '54.174.83.129'
-[00:01:17.807,678] <inf> mender_ncs_example: Mender client authenticated
-[00:01:17.817,199] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/core/src/mender-client.c (903): Checking for deployment...
-[00:01:18.772,003] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
-43' with IPv4 address '54.174.83.129'
-[00:01:19.229,614] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/core/src/mender-client.c (911): No deployment available
-[00:01:19.243,988] <inf> mender_ncs_example: Mender client released network
-[00:01:19.253,540] <inf> mender_ncs_example: Mender client connect network
-[00:01:20.204,620] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
-43' with IPv4 address '54.174.83.129'
-[00:01:20.559,204] <inf> mender_ncs_example: Mender client released network
-[00:01:20.568,817] <inf> mender_ncs_example: Mender client connect network
-[00:01:21.555,053] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
+[00:01:00.378,845] <inf> mender_ncs_example: Mender client connect network
+[00:01:00.388,305] <inf> mender_ncs_example: Connecting to the network
+Connected
+[00:01:22.179,443] <inf> mender_ncs_example: Got IPv4 event: 'NET_EVENT_IPV4_ADDR_ADD'
+[00:01:22.189,941] <inf> mender_ncs_example: IPv4 address: 192.168.1.123
+[00:01:22.199,157] <inf> mender_ncs_example: Lease time: 43200 seconds
+[00:01:22.208,282] <inf> mender_ncs_example: Subnet: 255.255.255.0
+[00:01:22.217,041] <inf> mender_ncs_example: Router: 192.168.1.1
+[00:01:22.226,287] <inf> mender_ncs_example: Connected to the network
+[00:01:23.217,895] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
 43' with IPv4 address '98.87.139.180'
-[00:01:22.078,308] <inf> mender_ncs_example: Mender client released network
+[00:01:23.782,989] <inf> mender_ncs_example: Mender client authenticated
+[00:01:23.792,480] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/core/src/mender-client.c (903): Checking for deployment...
+[00:01:24.740,020] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
+43' with IPv4 address '98.87.139.180'
+[00:01:25.205,108] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/core/src/mender-client.c (911): No deployment available
+[00:01:25.219,451] <inf> mender_ncs_example: Mender client released network
+[00:01:25.229,034] <inf> mender_ncs_example: Mender client connect network
+[00:01:25.238,494] <inf> mender_ncs_example: Connected to the network
+[00:01:26.177,642] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
+43' with IPv4 address '54.174.83.129'
+[00:01:26.638,702] <inf> mender_ncs_example: Mender client released network
+[00:01:26.648,376] <inf> mender_ncs_example: Mender client connect network
+[00:01:26.657,836] <inf> mender_ncs_example: Connected to the network
+[00:01:27.623,992] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
+43' with IPv4 address '54.174.83.129'
+[00:01:28.062,042] <inf> mender_ncs_example: Mender client released network
+[00:01:38.071,777] <inf> mender_ncs_example: Disconnecting network
+Disconnected
+[00:01:38.094,696] <inf> mender_ncs_example: Got IPv4 event: 'NET_EVENT_IPV4_ADDR_DEL'
+[00:01:38.126,068] <inf> mender_ncs_example: Disconnected of the network
 ```
 
 Congratulation! Your device is connected to the mender server. Device type is `mender-nrf7002dk-ncs-example` and the current software version is displayed.
@@ -152,87 +182,105 @@ Upload the artifact `mender-nrf7002dk-ncs-example-v0.2.0.mender` to the mender s
 The device checks for the new deployment, downloads the artifact and installs it on the update partition. Then it reboots to apply the update:
 
 ```
-[00:06:17.817,169] <inf> mender_ncs_example: Mender client connect network
-[00:06:17.826,629] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/core/src/mender-client.c (903): Checking for deployment...
-[00:06:18.834,594] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
-43' with IPv4 address '98.87.139.180'
-[00:06:19.379,089] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/core/src/mender-client.c (930): Downloading deployment artifact with id '88f81b11-04e
-3-42ff-9e3f-99e17fe4bcbc', artifact name 'mender-nrf7002dk-ncs-example-v0.2.0' and uri 'https://hosted-mender-artifacts.s3.amazonaws.com/6370b06a7f0deaedb279fb6
-a/165c847f-c04e-4280-885c-4f4a555a0da4?X-A
-[00:06:20.354,827] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
-43' with IPv4 address '98.87.139.180'
-[00:06:20.901,580] <inf> mender_ncs_example: Deployment status is 'downloading'
-[00:06:22.089,477] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted-mender-arti
-facts.s3.amazonaws.com:443' with IPv4 address '52.216.36.249'
-[00:06:23.887,878] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/core/src/mender-artifact.c (374): Artifact has valid version
-[00:06:23.909,454] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/flash/zephyr/dfu_target/src/mender-flash.c (48): Start flashing artifact 'ze
-phyr.signed.bin' with size 849308
-[00:07:55.832,275] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/core/src/mender-client.c (943): Download done, installing artifact
-[00:07:56.811,859] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
-43' with IPv4 address '54.174.83.129'
-[00:07:57.253,906] <inf> mender_ncs_example: Deployment status is 'installing'
-[00:07:57.264,923] <inf> dfu_target_mcuboot: MCUBoot image-0 upgrade scheduled. Reset device to apply
-[00:07:58.320,129] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
-43' with IPv4 address '54.174.83.129'
-[00:07:58.796,661] <inf> mender_ncs_example: Deployment status is 'rebooting'
-[00:07:58.806,640] <inf> mender_ncs_example: Mender client released network
-[00:07:58.816,558] <inf> mender_ncs_example: Restarting system
-uart:~$ [00:00:00.251,617] <inf> spi_nor: mx25r6435f@0: 8 MiBy flash
-*** Booting MCUboot v2.1.0-dev-ae1ee57f3906 ***
-*** Using nRF Connect SDK v3.0.2-89ba1294ac9b ***
-*** Using Zephyr OS v4.0.99-f791c49f492c ***
-[00:00:00.272,430] <inf> mcuboot: Starting bootloader
-[00:00:00.279,205] <inf> mcuboot: Primary image: magic=good, swap_type=0x2, copy_done=0x1, image_ok=0x1
-[00:00:00.289,215] <inf> mcuboot: Secondary image: magic=good, swap_type=0x2, copy_done=0x3, image_ok=0x3
-[00:00:00.299,102] <inf> mcuboot: Boot source: none
-[00:00:00.304,748] <inf> mcuboot: Image index: 0, Swap type: test
-[00:00:02.576,232] <inf> mcuboot: Starting swap using move algorithm.
-[00:01:33.073,333] <inf> mcuboot: Bootloader chainload address offset: 0x10000
-[00:01:33.080,902] <inf> mcuboot: Image version: v0.1.0
-�00:01:33.086,547] <inf> mcuboot: Jumping to the first image slot
-[00:00:00.065,856] <inf> wifi_nrf: Configuring SLEEP CTRL GPIO control register
-
-*** Booting mender-ncs-example v0.2.0-2dfba2ba8e4e ***
-*** Using nRF Connect SDK v3.0.2-89ba1294ac9b ***
-*** Using Zephyr OS v4.0.99-f791c49f492c ***
-[00:00:00.237,976] <inf> mender_ncs_example: Initialization of network interface
-[00:00:00.249,267] <inf> wifi_supplicant: wpa_supplicant initialized
+[00:06:23.792,449] <inf> mender_ncs_example: Mender client connect network
+[00:06:23.801,910] <inf> mender_ncs_example: Connecting to the network
 Connected
-[00:00:18.036,743] <inf> mender_ncs_example: IPv4 address: 192.168.1.123
-[00:00:18.045,989] <inf> mender_ncs_example: Lease time: 43200 seconds
-[00:00:18.055,114] <inf> mender_ncs_example: Subnet: 255.255.255.0
-[00:00:18.063,842] <inf> mender_ncs_example: Router: 192.168.1.1
-[00:00:18.073,120] <inf> mender_ncs_example: Initialization of certificate(s)
-[00:00:18.082,855] <inf> mender_ncs_example: MAC address of the device 'f4:ce:36:00:1f:dc'
-[00:00:18.093,658] <inf> mender_ncs_example: Running project 'mender-ncs-example' version '0.2.0'
-[00:00:18.106,689] <inf> mender_ncs_example: Mender client version '0.12.3' initialized
-[00:00:18.117,462] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/storage/generic/psa_its/src/mender-storage.c (165): Device configuration not
+[00:06:44.711,517] <inf> mender_ncs_example: Got IPv4 event: 'NET_EVENT_IPV4_ADDR_ADD'
+[00:06:44.722,015] <inf> mender_ncs_example: IPv4 address: 192.168.1.123
+[00:06:44.731,262] <inf> mender_ncs_example: Lease time: 43200 seconds
+[00:06:44.740,417] <inf> mender_ncs_example: Subnet: 255.255.255.0
+[00:06:44.749,176] <inf> mender_ncs_example: Router: 192.168.1.1
+[00:06:44.758,392] <inf> mender_ncs_example: Connected to the network
+[00:06:44.768,005] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/core/src/mender-client.c (903): Checking for deployment...
+[00:06:45.768,066] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
+43' with IPv4 address '54.174.83.129'
+[00:06:46.449,798] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/core/src/mender-client.c (930): Downloading deployment artifact with id '8cf35811-2f3
+8-438b-9d87-e767a4f09347', artifact name 'mender-nrf7002dk-ncs-example-v0.2.0' and uri 'https://hosted-mender-artifacts.s3.amazonaws.com/6370b06a7f0deaedb279fb6
+a/0f34b5f6-7eed-4766-b2c7-4e16cb2fcb09?X-A
+[00:06:47.417,388] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
+43' with IPv4 address '54.174.83.129'
+[00:06:47.971,923] <inf> mender_ncs_example: Deployment status is 'downloading'
+[00:06:49.151,855] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted-mender-arti
+facts.s3.amazonaws.com:443' with IPv4 address '52.216.250.52'
+[00:06:51.165,985] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/core/src/mender-artifact.c (374): Artifact has valid version
+[00:06:51.185,913] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/flash/zephyr/dfu_target/src/mender-flash.c (48): Start flashing artifact 'ze
+phyr.signed.bin' with size 870688
+[00:08:30.367,675] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/core/src/mender-client.c (943): Download done, installing artifact
+[00:08:31.331,420] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
+43' with IPv4 address '98.87.139.180'
+[00:08:31.806,304] <inf> mender_ncs_example: Deployment status is 'installing'
+[00:08:31.817,260] <inf> dfu_target_mcuboot: MCUBoot image-0 upgrade scheduled. Reset device to apply
+[00:08:32.882,385] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
+43' with IPv4 address '98.87.139.180'
+[00:08:33.243,438] <inf> mender_ncs_example: Deployment status is 'rebooting'
+[00:08:33.253,509] <inf> mender_ncs_example: Mender client released network
+[00:08:33.263,031] <inf> mender_ncs_example: Disconnecting network
+Disconnected
+[00:08:33.307,434] <inf> mender_ncs_example: Disconnected of the network
+[00:08:43.317,169] <inf> mender_ncs_example: Restarting system
+uart:~$ [00:00:00.251,556] <inf> spi_nor: mx25r6435f@0: 8 MiBy flash
+*** Booting MCUboot v2.3.0-dev-0d9411f5dda3 ***
+*** Using nRF Connect SDK v3.2.1-d8887f6f32df ***
+*** Using Zephyr OS v4.2.99-ec78104f1569 ***
+[00:00:00.272,430] <inf> mcuboot: Starting bootloader
+[00:00:00.279,113] <inf> mcuboot: Primary image: magic=good, swap_type=0x2, copy_done=0x1, image_ok=0x1
+[00:00:00.289,123] <inf> mcuboot: Secondary image: magic=good, swap_type=0x2, copy_done=0x3, image_ok=0x3
+[00:00:00.299,011] <inf> mcuboot: Boot source: none
+[00:00:00.304,656] <inf> mcuboot: Image index: 0, Swap type: test
+[00:00:02.574,188] <inf> mcuboot: Starting swap using move algorithm.
+[00:01:35.508,392] <inf> mcuboot: Bootloader chainload address offset: 0x10000
+[00:01:35.515,960] <inf> mcuboot: Image version: v0.2.0
+�00:01:35.521,575] <inf> mcuboot: Jumping to the first image slot
+*** Booting mender-ncs-example v0.2.0-ba3253097280 ***
+*** Using nRF Connect SDK v3.2.1-d8887f6f32df ***
+*** Using Zephyr OS v4.2.99-ec78104f1569 ***
+[00:00:00.227,478] <inf> mender_ncs_example: Initialization of network interface
+[00:00:00.231,597] <inf> wifi_supplicant: wpa_supplicant initialized
+[00:00:00.286,376] <inf> mender_ncs_example: Initialization of certificate(s)
+[00:00:00.296,234] <inf> mender_ncs_example: MAC address of the device 'f4:ce:36:00:1f:dc'
+[00:00:00.307,037] <inf> mender_ncs_example: Running project 'mender-ncs-example' version '0.2.0'
+[00:00:00.319,854] <inf> mender_ncs_example: Mender client version '0.12.3' initialized
+[00:00:00.330,657] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/storage/generic/psa_its/src/mender-storage.c (165): Device configuration not
  available (-140)
-[00:00:18.135,894] <inf> mender_ncs_example: Mender configure add-on registered
-[00:00:18.145,812] <inf> mender_ncs_example: Mender inventory add-on registered
-[00:00:18.155,700] <inf> mender_ncs_example: Device configuration retrieved
-[00:00:18.190,002] <inf> mender_ncs_example: Mender client connect network
-[00:00:19.218,872] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
+[00:00:00.349,121] <inf> mender_ncs_example: Mender configure add-on registered
+[00:00:00.359,039] <inf> mender_ncs_example: Mender inventory add-on registered
+[00:00:00.368,896] <inf> mender_ncs_example: Device configuration retrieved
+[00:00:00.402,679] <inf> mender_ncs_example: Mender client connect network
+[00:00:00.412,109] <inf> mender_ncs_example: Connecting to the network
+Connected
+[00:00:16.669,281] <inf> mender_ncs_example: Got IPv4 event: 'NET_EVENT_IPV4_ADDR_ADD'
+[00:00:16.679,779] <inf> mender_ncs_example: IPv4 address: 192.168.1.123
+[00:00:16.689,025] <inf> mender_ncs_example: Lease time: 43200 seconds
+[00:00:16.698,150] <inf> mender_ncs_example: Subnet: 255.255.255.0
+[00:00:16.706,909] <inf> mender_ncs_example: Router: 192.168.1.1
+[00:00:16.716,156] <inf> mender_ncs_example: Connected to the network
+[00:00:17.729,888] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
 43' with IPv4 address '54.174.83.129'
-[00:00:19.672,698] <inf> mender_ncs_example: Mender client authenticated
-[00:00:19.682,189] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/flash/zephyr/dfu_target/src/mender-flash.c (155): Application has been mark 
+[00:00:18.238,586] <inf> mender_ncs_example: Mender client authenticated
+[00:00:18.248,046] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/flash/zephyr/dfu_target/src/mender-flash.c (155): Application has been mark 
 valid and rollback canceled
-[00:00:20.672,760] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
+[00:00:19.227,203] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
 43' with IPv4 address '54.174.83.129'
-[00:00:21.091,125] <inf> mender_ncs_example: Deployment status is 'success'
-[00:00:21.192,779] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/core/src/mender-client.c (903): Checking for deployment...
-[00:00:22.194,366] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
+[00:00:19.676,940] <inf> mender_ncs_example: Deployment status is 'success'
+[00:00:19.778,686] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/core/src/mender-client.c (903): Checking for deployment...
+[00:00:20.760,040] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
 43' with IPv4 address '98.87.139.180'
-[00:00:22.601,379] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/core/src/mender-client.c (911): No deployment available
-[00:00:22.615,661] <inf> mender_ncs_example: Mender client released network
-[00:00:22.625,213] <inf> mender_ncs_example: Mender client connect network
-[00:00:23.605,590] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
+[00:00:21.133,605] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/core/src/mender-client.c (911): No deployment available
+[00:00:21.147,979] <inf> mender_ncs_example: Mender client released network
+[00:00:21.157,562] <inf> mender_ncs_example: Mender client connect network
+[00:00:21.167,022] <inf> mender_ncs_example: Connected to the network
+[00:00:22.276,885] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
 43' with IPv4 address '54.174.83.129'
-[00:00:24.163,055] <inf> mender_ncs_example: Mender client released network
-[00:00:24.172,698] <inf> mender_ncs_example: Mender client connect network
-[00:00:25.153,472] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
+[00:00:22.733,795] <inf> mender_ncs_example: Mender client released network
+[00:00:22.743,499] <inf> mender_ncs_example: Mender client connect network
+[00:00:22.752,960] <inf> mender_ncs_example: Connected to the network
+[00:00:23.723,419] <inf> mender: WEST_TOPDIR/modules/lib/mender-mcu-client/platform/net/zephyr/src/mender-net.c (156): Connected to the host 'hosted.mender.io:4
 43' with IPv4 address '98.87.139.180'
-[00:00:25.801,879] <inf> mender_ncs_example: Mender client released network
+[00:00:24.269,165] <inf> mender_ncs_example: Mender client released network
+[00:00:34.278,869] <inf> mender_ncs_example: Disconnecting network
+Disconnected
+[00:00:34.306,671] <inf> mender_ncs_example: Got IPv4 event: 'NET_EVENT_IPV4_ADDR_DEL'
+[00:00:34.338,226] <inf> mender_ncs_example: Disconnected of the network
 ```
 
 Congratulation! You have updated the device. Mender server displays the success of the deployment.
