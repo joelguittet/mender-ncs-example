@@ -29,7 +29,7 @@ manifest:
     - name: nrf
       remote: nrfconnect
       repo-path: sdk-nrf
-      revision: v3.0.2
+      revision: v3.2.1
       import:
         # By using name-allowlist we can clone only the modules that are
         # strictly needed by the application
@@ -44,12 +44,12 @@ manifest:
     - name: zephyr
       remote: nrfconnect
       repo-path: sdk-zephyr
-      revision: v4.0.99-ncs1-2
+      revision: ncs-v3.2.1
       import:
         # By using name-allowlist we can clone only the modules that are
         # strictly needed by the application
         name-allowlist:
-          - cmsis
+          - cmsis_6
           - hal_nordic
           - littlefs
           - nrf_hw_models
