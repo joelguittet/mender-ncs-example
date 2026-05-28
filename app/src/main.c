@@ -29,7 +29,6 @@ LOG_MODULE_REGISTER(mender_ncs_example, LOG_LEVEL_INF);
 
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
-#include <zephyr/net/net_event.h>
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/net_mgmt.h>
 #ifdef CONFIG_WIFI
@@ -90,11 +89,11 @@ static const unsigned char ca_certificate_secondary[] = {
  * @brief Mender client events
  */
 static K_EVENT_DEFINE(mender_client_events);
-#define MENDER_CLIENT_EVENT_CONNECT      (1 << 0)
-#define MENDER_CLIENT_EVENT_CONNECTED    (1 << 1)
-#define MENDER_CLIENT_EVENT_DISCONNECT   (1 << 2)
-#define MENDER_CLIENT_EVENT_DISCONNECTED (1 << 3)
-#define MENDER_CLIENT_EVENT_RESTART      (1 << 4)
+#define MENDER_CLIENT_EVENT_CONNECT           (1 << 0)
+#define MENDER_CLIENT_EVENT_CONNECTED         (1 << 1)
+#define MENDER_CLIENT_EVENT_CONNECTION_FAILED (1 << 2)
+#define MENDER_CLIENT_EVENT_DISCONNECT        (1 << 3)
+#define MENDER_CLIENT_EVENT_RESTART           (1 << 4)
 
 /**
  * @brief Network management callback
@@ -178,7 +177,7 @@ network_connect_cb(void) {
     /* This callback only indicates the mender-client requests network access now */
     k_event_post(&mender_client_events, MENDER_CLIENT_EVENT_CONNECT);
     uint32_t events = k_event_wait(&mender_client_events,
-                                   MENDER_CLIENT_EVENT_CONNECTED | MENDER_CLIENT_EVENT_DISCONNECTED,
+                                   MENDER_CLIENT_EVENT_CONNECTED | MENDER_CLIENT_EVENT_CONNECTION_FAILED,
                                    false,
                                    K_SECONDS(2 * CONFIG_EXAMPLE_NETWORK_CONNECT_FAILS_MAX_TRIES * CONFIG_EXAMPLE_NETWORK_CONNECT_FAILS_TIMEOUT));
     k_event_clear(&mender_client_events, events);
@@ -746,77 +745,56 @@ main(void) {
 
     /* Wait for mender-mcu-client events, connect and disconnect network on request, restart the application if required */
     bool connected = false;
+    bool restart   = false;
     while (1) {
-        uint32_t events
-            = k_event_wait(&mender_client_events, MENDER_CLIENT_EVENT_CONNECT | MENDER_CLIENT_EVENT_DISCONNECT | MENDER_CLIENT_EVENT_RESTART, false, K_FOREVER);
+        k_timeout_t ticks = restart ? K_SECONDS(10) : K_FOREVER;
+        uint32_t    events
+            = k_event_wait(&mender_client_events, MENDER_CLIENT_EVENT_CONNECT | MENDER_CLIENT_EVENT_DISCONNECT | MENDER_CLIENT_EVENT_RESTART, false, ticks);
         k_event_clear(&mender_client_events, events);
         if (MENDER_CLIENT_EVENT_CONNECT == (events & MENDER_CLIENT_EVENT_CONNECT)) {
-            /* Connect to the network */
-            LOG_INF("Connecting to the network");
-            if (0 != network_connect(iface)) {
-                k_event_post(&mender_client_events, MENDER_CLIENT_EVENT_DISCONNECTED);
-                LOG_ERR("Unable to connect network");
+            if (!connected) {
+                /* Connect to the network */
+                LOG_INF("Connecting to the network");
+                if (0 != network_connect(iface)) {
+                    k_event_post(&mender_client_events, MENDER_CLIENT_EVENT_CONNECTION_FAILED);
+                    LOG_ERR("Unable to connect network");
+                } else {
+                    connected = true;
+                    k_event_post(&mender_client_events, MENDER_CLIENT_EVENT_CONNECTED);
+                    LOG_INF("Connected to the network");
+                }
             } else {
-                connected = true;
                 k_event_post(&mender_client_events, MENDER_CLIENT_EVENT_CONNECTED);
                 LOG_INF("Connected to the network");
             }
         } else if (MENDER_CLIENT_EVENT_DISCONNECT == (events & MENDER_CLIENT_EVENT_DISCONNECT)) {
-            events = k_event_wait(&mender_client_events, MENDER_CLIENT_EVENT_CONNECT, false, K_SECONDS(10));
-            k_event_clear(&mender_client_events, events);
-            if (MENDER_CLIENT_EVENT_CONNECT == (events & MENDER_CLIENT_EVENT_CONNECT)) {
-                /* Reconnection requested while not disconnected yet */
-                k_event_post(&mender_client_events, MENDER_CLIENT_EVENT_CONNECTED);
-                LOG_INF("Connected to the network");
-            } else {
-                /* Disconnect the network */
-                LOG_INF("Disconnecting network");
-                if (0 != network_disconnect(iface)) {
-                    LOG_ERR("Unable to disconnect network");
-                } else {
-                    connected = false;
-                    LOG_INF("Disconnected of the network");
-                }
-            }
-        }
-        if (MENDER_CLIENT_EVENT_RESTART == (events & MENDER_CLIENT_EVENT_RESTART)) {
-            while (1) {
-                events = k_event_wait(&mender_client_events, MENDER_CLIENT_EVENT_CONNECT | MENDER_CLIENT_EVENT_DISCONNECT, false, K_SECONDS(10));
+            if (connected) {
+                events = k_event_wait(&mender_client_events, MENDER_CLIENT_EVENT_CONNECT, false, K_SECONDS(10));
                 k_event_clear(&mender_client_events, events);
                 if (MENDER_CLIENT_EVENT_CONNECT == (events & MENDER_CLIENT_EVENT_CONNECT)) {
-                    /* Reconnection requested before restarting */
-                    if (!connected) {
-                        /* Connect to the network */
-                        LOG_INF("Connecting to the network");
-                        if (0 != network_connect(iface)) {
-                            k_event_post(&mender_client_events, MENDER_CLIENT_EVENT_DISCONNECTED);
-                            LOG_ERR("Unable to connect network");
-                        } else {
-                            connected = true;
-                            k_event_post(&mender_client_events, MENDER_CLIENT_EVENT_CONNECTED);
-                            LOG_INF("Connected to the network");
-                        }
-                    } else {
-                        k_event_post(&mender_client_events, MENDER_CLIENT_EVENT_CONNECTED);
-                        LOG_INF("Connected to the network");
-                    }
-                } else if (MENDER_CLIENT_EVENT_DISCONNECT == (events & MENDER_CLIENT_EVENT_DISCONNECT)) {
-                    /* Disonnection requested before restarting */
-                    if (connected) {
-                        /* Disconnect the network */
-                        LOG_INF("Disconnecting network");
-                        if (0 != network_disconnect(iface)) {
-                            LOG_ERR("Unable to disconnect network");
-                        } else {
-                            connected = false;
-                            LOG_INF("Disconnected of the network");
-                        }
-                    }
+                    /* Reconnection requested while not disconnected yet */
+                    k_event_post(&mender_client_events, MENDER_CLIENT_EVENT_CONNECTED);
+                    LOG_INF("Connected to the network");
                 } else {
-                    /* Application will restart now */
-                    goto RELEASE;
+                    /* Disconnect the network */
+                    LOG_INF("Disconnecting network");
+                    if (0 != network_disconnect(iface)) {
+                        LOG_ERR("Unable to disconnect network");
+                    } else {
+                        connected = false;
+                        LOG_INF("Disconnected of the network");
+                    }
                 }
+            } else {
+                LOG_INF("Disconnected of the network");
             }
+        } else if (true == restart) {
+            /* Application will restart now */
+            goto RELEASE;
+        }
+        if (MENDER_CLIENT_EVENT_RESTART == (events & MENDER_CLIENT_EVENT_RESTART)) {
+            /* Set restart pending flag */
+            restart = true;
         }
     }
 
