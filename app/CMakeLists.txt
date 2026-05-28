@@ -33,6 +33,11 @@ target_sources(app PRIVATE "src/main.c")
 target_compile_definitions(app PRIVATE PROJECT_NAME="mender-ncs-example")
 target_compile_definitions(app PRIVATE _POSIX_C_SOURCE=200809L) # Required for strdup support
 
+# Link application to bootutil library if mcumgr is used
+if (CONFIG_MCUMGR_GRP_IMG)
+    zephyr_link_libraries(MCUBOOT_BOOTUTIL)
+endif()
+
 # Generate Root CA include files
 if (CONFIG_EXAMPLE_USE_CUSTOM_CERTIFICATE)
     generate_inc_file_for_target(app "${CONFIG_EXAMPLE_CERTIFICATE_PATH}" "${ZEPHYR_BINARY_DIR}/include/generated/mender.der.inc")

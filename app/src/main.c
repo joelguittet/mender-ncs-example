@@ -29,6 +29,9 @@ LOG_MODULE_REGISTER(mender_ncs_example, LOG_LEVEL_INF);
 
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
+#ifdef CONFIG_MCUMGR_GRP_IMG
+#include <zephyr/mgmt/mcumgr/grp/img_mgmt/img_mgmt.h>
+#endif /* CONFIG_MCUMGR_GRP_IMG */
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/net_mgmt.h>
 #ifdef CONFIG_WIFI
@@ -630,12 +633,35 @@ main(void) {
              linkaddr->addr[5]);
     LOG_INF("MAC address of the device '%s'", mac_address);
 
+#ifdef CONFIG_MCUMGR_GRP_IMG
     /* Retrieve running version of the device */
+    struct image_version image_version;
+    img_mgmt_my_version(&image_version);
+    LOG_INF("Running project '%s' version '%d.%d.%d+%d'",
+            PROJECT_NAME,
+            image_version.iv_major,
+            image_version.iv_minor,
+            image_version.iv_revision,
+            image_version.iv_build_num);
+#else
+    /* Print version of the device */
     LOG_INF("Running project '%s' version '%s'", PROJECT_NAME, APP_VERSION_STRING);
+#endif /* CONFIG_MCUMGR_GRP_IMG */
 
     /* Compute artifact name */
     char artifact_name[128];
+#ifdef CONFIG_MCUMGR_GRP_IMG
+    snprintf(artifact_name,
+             sizeof(artifact_name),
+             "%s-v%d.%d.%d+%d",
+             CONFIG_EXAMPLE_ARTIFACT_NAME_PREFIX,
+             image_version.iv_major,
+             image_version.iv_minor,
+             image_version.iv_revision,
+             image_version.iv_build_num);
+#else
     snprintf(artifact_name, sizeof(artifact_name), "%s-v%s", CONFIG_EXAMPLE_ARTIFACT_NAME_PREFIX, APP_VERSION_STRING);
+#endif /* CONFIG_MCUMGR_GRP_IMG */
 
     /* Retrieve device type */
     char *device_type = CONFIG_EXAMPLE_DEVICE_TYPE;
