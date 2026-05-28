@@ -57,5 +57,5 @@ manifest:
           - picolibc
     - name: mender-mcu-client
       remote: joelguittet
-      revision: 0.12.3
+      revision: 0.12.4
       path: modules/lib/mender-mcu-client
