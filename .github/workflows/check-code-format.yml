@@ -41,7 +41,7 @@ jobs:
         with:
           path: mender-ncs-example
 
-      # Check code format
+      # Check code format
       - name: Check headers
         if: ${{ always() }}
         working-directory: mender-ncs-example
