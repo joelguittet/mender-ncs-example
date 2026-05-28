@@ -24,6 +24,7 @@
 #include <version.h>
 
 #include <zephyr/logging/log.h>
+#include <zephyr/logging/log_ctrl.h>
 LOG_MODULE_REGISTER(mender_ncs_example, LOG_LEVEL_INF);
 
 #include <zephyr/kernel.h>
@@ -818,6 +819,7 @@ RESTART:
 
     /* Restart */
     LOG_INF("Restarting system");
+    log_flush();
     sys_reboot(SYS_REBOOT_WARM);
 
     return 0;
