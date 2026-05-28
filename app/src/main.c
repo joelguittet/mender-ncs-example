@@ -28,6 +28,7 @@
 LOG_MODULE_REGISTER(mender_ncs_example, LOG_LEVEL_INF);
 
 #include <zephyr/kernel.h>
+#include <zephyr/drivers/gpio.h>
 #include <zephyr/net/net_event.h>
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/net_mgmt.h>
@@ -622,6 +623,16 @@ main(void) {
     /* Retrieve device type */
     char *device_type = CONFIG_EXAMPLE_DEVICE_TYPE;
 
+    /* Button sw0 is used to fore recommissioning */
+    bool                      recommissioning = false;
+    const struct gpio_dt_spec button          = GPIO_DT_SPEC_GET_OR(DT_ALIAS(sw0), gpios, { 0 });
+    if (gpio_is_ready_dt(&button)) {
+        assert(0 == gpio_pin_configure_dt(&button, GPIO_INPUT));
+        if (gpio_pin_get_dt(&button)) {
+            recommissioning = true;
+        }
+    }
+
     /* Initialize mender-client */
     mender_keystore_t         identity[]              = { { .name = "mac", .value = mac_address }, { .name = NULL, .value = NULL } };
     mender_client_config_t    mender_client_config    = { .identity                     = identity,
@@ -631,7 +642,7 @@ main(void) {
                                                           .tenant_token                 = NULL,
                                                           .authentication_poll_interval = 0,
                                                           .update_poll_interval         = 0,
-                                                          .recommissioning              = false };
+                                                          .recommissioning              = recommissioning };
     mender_client_callbacks_t mender_client_callbacks = { .network_connect        = network_connect_cb,
                                                           .network_release        = network_release_cb,
                                                           .authentication_success = authentication_success_cb,
