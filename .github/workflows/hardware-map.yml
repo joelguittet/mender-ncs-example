@@ -1,0 +1,108 @@
+# @file      hardware-map.yml
+# @brief     Used to generate map on the test machine
+#
+# Copyright joelguittet and mender-mcu-client contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: hardware-map
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate-hardware-map:
+    name: Generate hardware map
+    runs-on: self-hosted
+    # Twister is executed inside zephyrproject-rtos/ci container
+    # The container is executed with privileged option to have full access to the host
+    # The following are bounded in the container:
+    # - /dev: to allow access to the devices
+    container:
+      image: ghcr.io/zephyrproject-rtos/ci:v0.29.0
+      volumes:
+        - /dev:/dev
+      options: --privileged
+
+    steps:
+      # Checkout mender-ncs-example
+      - name: Checkout mender-ncs-example
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          path: mender-ncs-example
+
+      # Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+        env:
+          PIP_ROOT_USER_ACTION: ignore
+
+      # Setup Zephyr project
+      - name: Setup Zephyr project
+        uses: zephyrproject-rtos/action-zephyr-setup@v1
+        with:
+          app-path: mender-ncs-example
+        env:
+          PIP_ROOT_USER_ACTION: ignore
+
+      # Apply Zephyr patches
+      - name: Apply Zephyr patches
+        working-directory: mender-ncs-example
+        run: |
+          if [ -f "zephyr/patches.yml" ]; then
+            west patch apply
+          fi
+
+      # Generate hardware map using twister
+      # The following options is used:
+      # --generate-hardware-map: generate hardware map
+      # --persistent-hardware-map: tries to use persistent names for serial devices
+      - name: Generate hardware map
+        working-directory: mender-ncs-example
+        run: |
+          west twister --persistent-hardware-map --generate-hardware-map twister-out/map.yml
+
+      # Upload hardware-map artifact
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: hardware-map
+          if-no-files-found: error
+          retention-days: 1
+          path: |
+            mender-ncs-example/twister-out/map.yml
+
+      # Cleanup twister results
+      - name: Cleanup twister results
+        if: ${{ always() }}
+        working-directory: mender-ncs-example
+        run: |
+          rm -rf twister-out
+
+      # Cleanup Zephyr patches
+      - name: Cleanup Zephyr patches
+        if: ${{ always() }}
+        working-directory: mender-ncs-example
+        run: |
+          if [ -f "zephyr/patches.yml" ]; then
+            west patch clean
+          fi
+
+      # Cleanup Zephyr environment
+      - name: Cleanup Zephyr environment
+        if: ${{ always() }}
+        run: |
+          rm -rf .west
