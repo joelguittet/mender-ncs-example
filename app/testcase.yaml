@@ -1,0 +1,40 @@
+# @file      testcase.yaml
+# @brief     twister test file used to execute tests on the targets
+#
+# Copyright joelguittet and mender-mcu-client contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+common:
+  sysbuild: True
+  timeout: 3600
+  slow: true
+  harness: pytest
+  harness_config:
+    pytest_dut_scope: function
+    pytest_root:
+      - "pytest/test_mender_mcu_client.py"
+  tags:
+    - testing
+    - pytest
+    - shell
+
+tests:
+  mender.mcu.client.default:
+    extra_args: EXTRA_CONF_FILE="${WEST_TOPDIR}/local.conf;mcumgr.conf"
+    platform_allow:
+      - nrf7002dk/nrf5340/cpuapp/ns
+  mender.mcu.client.troubleshoot:
+    extra_args: EXTRA_CONF_FILE="${WEST_TOPDIR}/local.conf;mcumgr.conf;troubleshoot.conf"
+    platform_allow:
+      - nrf7002dk/nrf5340/cpuapp/ns

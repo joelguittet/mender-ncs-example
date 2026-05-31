@@ -290,7 +290,7 @@ Congratulation! You have updated the device. Mender server displays the success 
 In case of failure to connect and authenticate to the server the current example application performs a rollback to the previous release.
 You can customize the behavior of the example application to add your own checks and perform the rollback in case the tests fail.
 
-### Building vscode nRF Connect SDK environment
+### Building using vscode nRF Connect SDK environment
 
 As an alternative to using the command line, it is possible to build the application using vscode nRF Connect SDK environment.
 
@@ -344,6 +344,35 @@ Those configurations are also available using the Kconfig fragment `trial.conf` 
 ```
 west build -b nrf7002dk/nrf5340/cpuapp/ns app -- -DEXTRA_CONF_FILE="trial.conf"
 ```
+
+
+## Testing
+
+[Twister](https://docs.zephyrproject.org/latest/develop/test/twister.html) and [Pytest](https://docs.pytest.org/en/stable) are used in Github actions workflows to execute tests on real target.
+
+For such purpose, Github action runner is installed on a Debian machine running the workflows. The Debian machine uses `ghcr.io/zephyrproject-rtos/ci` container which provides a good environment to build Zephyr RTOS projects in such context.
+
+When testing is executed, a dedicated mender-server instance is used. mender-server certificate to allow device and tests connecting to the server are provided. mender-server username and password are provided throw the Github Actions secrets.
+
+The Debian machine has a local configuration `local.conf` file used to build the firmware which contains the following settings:
+
+```
+CONFIG_MENDER_SERVER_HOST="https://docker.mender.io"
+CONFIG_MENDER_SERVER_TENANT_TOKEN=""
+CONFIG_EXAMPLE_USE_CUSTOM_CERTIFICATE=y
+CONFIG_EXAMPLE_CERTIFICATE_PATH="/__w/mender-ncs-example/mender-ncs-example/mender.der"
+CONFIG_EXAMPLE_WIFI_SSID="<ssid of local network>"
+CONFIG_EXAMPLE_WIFI_PSK="<psk of local network>"
+```
+
+The Debian machine has also a `map.yml` file to provide board settings for twister to run testing.
+
+Tests cover device registration, inventory, configuration, troubleshooting shell, firmware update and decomissioning.
+
+Tests are executed for each pull-request opened on the repository. Results are reported in the pull-request.
+
+The workflows and test files can be reused for your own projects.
+
 
 ## License
 

@@ -1,0 +1,254 @@
+# @file      device-testing.yml
+# @brief     Used to perform device testing using twister
+#
+# Copyright joelguittet and mender-mcu-client contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: device-testing
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    types: [opened, synchronize, reopened]
+  schedule:
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+# Define concurrency so that the jobs of the workflow are not mixed between
+# several executions in case it is launched again while one is still running
+concurrency:
+  group: device-testing
+  cancel-in-progress: false
+
+jobs:
+  device-testing:
+    name: Test execution
+    runs-on: self-hosted
+    timeout-minutes: 120
+    # Twister is executed inside ghcr.io/zephyrproject-rtos/ci container
+    # The container is executed with privileged option to have full access to the host
+    # The following are bounded in the container:
+    # - /dev: to allow access to the devices
+    # - local.conf: contains configuration of the test bench such as Mender server and Wi-Fi settings
+    # - map.yml: the twister hardware map corresponding to the devices physically connected to the test bench
+    # - mender.crt/mender.der: mender-server certificate to allow device and tests connecting to the server
+    container:
+      image: ghcr.io/zephyrproject-rtos/ci:v0.29.0
+      volumes:
+        - /dev:/dev
+        - /home/testbench/mender-ncs-example/local.conf:/__w/mender-ncs-example/mender-ncs-example/local.conf
+        - /home/testbench/mender-ncs-example/map.yml:/__w/mender-ncs-example/mender-ncs-example/map.yml
+        - /home/testbench/mender-server/compose/certs/mender.crt:/__w/mender-ncs-example/mender-ncs-example/mender.crt
+        - /home/testbench/mender-server/compose/certs/mender.der:/__w/mender-ncs-example/mender-ncs-example/mender.der
+      options: --privileged
+    # Permissions
+    # - contents: read, actions: read and checks: write are required to use dorny/test-reporter@v3
+    permissions:
+      contents: read
+      actions: read
+      checks: write
+
+    steps:
+      # Install mender-artifact and mender-cli
+      # mender-artifact is used to generate artifact for firmware update
+      # mender-cli is used to connect to the troubleshoot terminal of the device
+      - name: Install mender-artifact and mender-cli
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            apt-transport-https ca-certificates curl gnupg jq
+          curl -fsSL https://downloads.mender.io/repos/debian/gpg | tee /etc/apt/trusted.gpg.d/mender.asc
+          sed -i.bak -e "\,https://downloads.mender.io/repos/workstation-tools,d" /etc/apt/sources.list
+          echo "deb [arch=$(dpkg --print-architecture)] https://downloads.mender.io/repos/workstation-tools debian/trixie/stable main" | tee /etc/apt/sources.list.d/mender.list
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            mender-artifact mender-cli
+
+      # Install J-Link (used to flash nrf7002-dk board)
+      - name: Install J-Link
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            libxcb-render-util0 libxcb-shape0 libxcb-icccm4 libxcb-keysyms1 libxcb-image0 libxkbcommon-x11-0 udev curl
+          /lib/systemd/systemd-udevd --daemon
+          curl -d "accept_license_agreement=accepted&submit=Download+software" -X POST -O "https://www.segger.com/downloads/jlink/JLink_Linux_${JLINK_VERSION}_x86_64.deb"
+          dpkg -i JLink_Linux_${JLINK_VERSION}_x86_64.deb
+          rm JLink_Linux_${JLINK_VERSION}_x86_64.deb
+        env:
+          JLINK_VERSION: V890
+
+      # Checkout mender-ncs-example
+      - name: Checkout mender-ncs-example
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          path: mender-ncs-example
+
+      # Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+        env:
+          PIP_ROOT_USER_ACTION: ignore
+
+      # Setup Zephyr project
+      # Toolchains are installed to build the application for all supported boards:
+      # - arm-zephyr-eabi: to support nrf7002-dk board
+      - name: Setup Zephyr project
+        uses: zephyrproject-rtos/action-zephyr-setup@v1
+        with:
+          app-path: mender-ncs-example
+          toolchains: arm-zephyr-eabi
+        env:
+          PIP_ROOT_USER_ACTION: ignore
+
+      # Apply Zephyr patches
+      - name: Apply Zephyr patches
+        working-directory: mender-ncs-example
+        run: |
+          if [ -f "zephyr/patches.yml" ]; then
+            west patch apply
+          fi
+
+      # Fetch blobs
+      # The following blobs are fetch:
+      # - nrf_wifi: to support nrf7002-dk board
+      - name: Fetch blobs
+        working-directory: mender-ncs-example
+        run: |
+          west blobs fetch nrf_wifi
+
+      # Execute tests using twister
+      # The following options are used:
+      # --allow-installed-plugin: allow using pytest-dependency
+      # --enable-slow: execute test with "slow: true" in the testcase.yml file
+      # --inline-logs: print logs to stdout
+      # --device-testing: test on devices
+      # --hardware-map: Hardware map file, specific to the testbench machine
+      # The following environment variables are defined:
+      # - MENDER_SERVER: mender-server URL "https://docker.mender.io"
+      # - MENDER_USER: mender-server username previsouly defined
+      # - MENDER_PASS: mender-server password previsouly defined
+      # - MENDER_CA: mender-server certificate path to connect to the server
+      - name: Execute tests
+        working-directory: mender-ncs-example
+        id: execute-tests
+        run: |
+          west twister -T app -v --allow-installed-plugin --enable-slow --inline-logs --device-testing --hardware-map /__w/mender-ncs-example/mender-ncs-example/map.yml
+        env:
+          MENDER_SERVER: "https://docker.mender.io"
+          MENDER_USERNAME: ${{ secrets.MENDER_USERNAME }}
+          MENDER_PASSWORD: ${{ secrets.MENDER_PASSWORD }}
+          MENDER_CA: "/__w/mender-ncs-example/mender-ncs-example/mender.crt"
+
+      # Publish test results
+      - name: Publish test results
+        if: ${{ always() && steps.execute-tests.conclusion != 'skipped' && steps.execute-tests.conclusion != 'cancelled' }}
+        uses: dorny/test-reporter@v3
+        with:
+          working-directory: mender-ncs-example
+          name: 🧪 Zephyr Twister Test Report
+          path: twister-out/twister_report.xml
+          reporter: java-junit
+          report-title: 🧪 Zephyr Twister Test Report
+
+      # Upload test-results artifact
+      # This step is always executed, so that we can get logs even in case of failure during the execution of the tests
+      - name: Upload artifact
+        if: ${{ always() && steps.execute-tests.conclusion != 'skipped' && steps.execute-tests.conclusion != 'cancelled' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            mender-ncs-example/twister-out/testplan.json
+            mender-ncs-example/twister-out/twister.json
+            mender-ncs-example/twister-out/twister.log
+            mender-ncs-example/twister-out/twister.xml
+            mender-ncs-example/twister-out/twister_report.xml
+            mender-ncs-example/twister-out/twister_suite_report.xml
+            mender-ncs-example/twister-out/**/build.log
+            mender-ncs-example/twister-out/**/device.log
+            mender-ncs-example/twister-out/**/handler.log
+            mender-ncs-example/twister-out/**/report.xml
+            mender-ncs-example/twister-out/**/twister_harness.log
+
+      # Cleanup dangling devices and artifacts on mender-server
+      - name: Cleanup dangling devices and artifacts on mender-server
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          # Login to mender-server
+          TOKEN=$(curl -s -X POST https://docker.mender.io/api/management/v1/useradm/auth/login --cacert /__w/mender-ncs-example/mender-ncs-example/mender.crt -H "Content-Type: application/json" -H "Accept: application/jwt" -H "Authorization: Basic $(printf "%s" "${{ secrets.MENDER_USERNAME }}:${{ secrets.MENDER_PASSWORD }}" | base64)")
+          DEVICE_TYPES=(mender-nrf7002dk-ncs-example)
+          for device_type in "${DEVICE_TYPES[@]}"; do
+            # Abort all the active and pending deployments
+            curl -s https://docker.mender.io/api/management/v1/inventory/devices?inventory/device_type=${device_type} --cacert /__w/mender-ncs-example/mender-ncs-example/mender.crt -H "Authorization: Bearer $TOKEN" | jq -r '.[] | .id' | while read id; do echo "Abort deployment for device type '$device_type' with id '$id'"; curl -s -X DELETE https://docker.mender.io/api/management/v1/deployments/deployments/devices/$id --cacert /__w/mender-ncs-example/mender-ncs-example/mender.crt -H "Authorization: Bearer $TOKEN"; done
+            # Remove artifacts
+            curl -s https://docker.mender.io/api/management/v2/deployments/artifacts?device_type=${device_type} --cacert /__w/mender-ncs-example/mender-ncs-example/mender.crt -H "Authorization: Bearer $TOKEN" | jq -r '.[] | .id' | while read id; do echo "Removing artifact for device type '$device_type' with id '$id'"; curl -s -X DELETE https://docker.mender.io/api/management/v1/deployments/artifacts/$id --cacert /__w/mender-ncs-example/mender-ncs-example/mender.crt -H "Authorization: Bearer $TOKEN"; done
+            # Remove devices
+            curl -s https://docker.mender.io/api/management/v1/inventory/devices?inventory/device_type=${device_type} --cacert /__w/mender-ncs-example/mender-ncs-example/mender.crt -H "Authorization: Bearer $TOKEN" | jq -r '.[] | .id' | while read id; do echo "Removing device type '$device_type' with id '$id'"; curl -s -X DELETE https://docker.mender.io/api/management/v2/devauth/devices/$id --cacert /__w/mender-ncs-example/mender-ncs-example/mender.crt -H "Authorization: Bearer $TOKEN"; done
+          done
+
+      # Cleanup twister results
+      - name: Cleanup twister results
+        if: ${{ always() }}
+        working-directory: mender-ncs-example
+        run: |
+          rm -rf twister-out
+
+      # Cleanup Zephyr patches
+      - name: Cleanup Zephyr patches
+        if: ${{ always() }}
+        working-directory: mender-ncs-example
+        run: |
+          if [ -f "zephyr/patches.yml" ]; then
+            west patch clean
+          fi
+
+      # Cleanup Zephyr environment
+      - name: Cleanup Zephyr environment
+        if: ${{ always() }}
+        run: |
+          rm -rf .west
+
+  publish-test-results:
+    name: Publish test results
+    runs-on: ubuntu-24.04
+    if: ${{ always() && !contains(needs.device-testing.result, 'skipped') && !contains(needs.device-testing.result, 'cancelled') }}
+    needs: device-testing
+    # Permissions
+    # - contents: read, issues: read checks: write and pull-requests: write are required to use EnricoMi/publish-unit-test-result-action/linux@v2
+    permissions:
+      contents: read
+      issues: read
+      checks: write
+      pull-requests: write
+
+    steps:
+      # Download artifacts
+      # This step is used to retrieve test results so they can be used to publish report
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+
+      # Publish test results
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action/linux@v2
+        with:
+          files: artifacts/twister_report.xml
