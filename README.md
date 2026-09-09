@@ -43,8 +43,14 @@ cd workspace-ncs
 git clone https://github.com/joelguittet/mender-ncs-example
 cd mender-ncs-example
 git submodule update --init --recursive
+python3 -m venv ../.venv
+source ../.venv/bin/activate
+pip install west
 west init -l .
 west update
+west zephyr-export
+west packages pip --install
+west sdk install
 ```
 
 ### Configuration of the application
