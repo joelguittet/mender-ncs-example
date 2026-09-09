@@ -180,7 +180,7 @@ west build -b nrf7002dk/nrf5340/cpuapp/ns app
 Then create a new artifact using the following command line:
 
 ```
-mender-artifact write rootfs-image --compression none --device-type mender-nrf7002dk-ncs-example --artifact-name mender-nrf7002dk-ncs-example-v0.2.0 --output-path build/app/zephyr/mender-nrf7002dk-ncs-example-v0.2.0.mender --file build/app/zephyr/zephyr.signed.bin
+mender-artifact write rootfs-image --compression none --compatible-types mender-nrf7002dk-ncs-example --artifact-name mender-nrf7002dk-ncs-example-v0.2.0 --output-path build/app/zephyr/mender-nrf7002dk-ncs-example-v0.2.0.mender --file build/app/zephyr/zephyr.signed.bin
 ```
 
 Upload the artifact `mender-nrf7002dk-ncs-example-v0.2.0.mender` to the mender server and create a new deployment.
