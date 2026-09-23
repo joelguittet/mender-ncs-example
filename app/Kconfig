@@ -23,6 +23,17 @@ endmenu
 
 menu "Application"
 
+    config EXAMPLE_USE_CUSTOM_CERTIFICATE
+        bool "Use custom certificate path"
+        help
+            Should be set to use custom certificate path instead of the default certificates.
+
+    config EXAMPLE_CERTIFICATE_PATH
+        string "Certificate path"
+        depends on EXAMPLE_USE_CUSTOM_CERTIFICATE
+        help
+            Custom certificate path to be integrated in the application instead of the default certificates.
+
     config EXAMPLE_ARTIFACT_NAME_PREFIX
         string "Artifact name"
         help

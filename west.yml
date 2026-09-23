@@ -55,6 +55,7 @@ manifest:
           - nrf_hw_models
           - nrf_wifi
           - picolibc
+          - zcbor # required in case mcumgr is enabled
     - name: mender-mcu-client
       remote: joelguittet
       revision: 0.12.4
