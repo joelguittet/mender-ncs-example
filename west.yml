@@ -29,7 +29,7 @@ manifest:
     - name: nrf
       remote: nrfconnect
       repo-path: sdk-nrf
-      revision: v3.2.1
+      revision: v3.4.1
       import:
         # By using name-allowlist we can clone only the modules that are
         # strictly needed by the application
@@ -44,7 +44,7 @@ manifest:
     - name: zephyr
       remote: nrfconnect
       repo-path: sdk-zephyr
-      revision: ncs-v3.2.1
+      revision: ncs-v3.4.1
       import:
         # By using name-allowlist we can clone only the modules that are
         # strictly needed by the application
@@ -57,5 +57,5 @@ manifest:
           - picolibc
     - name: mender-mcu-client
       remote: joelguittet
-      revision: 0.12.4
+      revision: 0.13.2
       path: modules/lib/mender-mcu-client
