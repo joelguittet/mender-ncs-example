@@ -1,0 +1,425 @@
+From 390815f783217f16cfb377b94d45eb22d4dde0d7 Mon Sep 17 00:00:00 2001
+From: Joel Guittet <jguittet@witekio.com>
+Date: Wed, 10 Jun 2026 09:16:45 +0200
+Subject: [PATCH 1/4] twister: allow arguments to pre/post scripts
+
+This improvment allows to pass parameters to the pre/post scripts.
+
+Signed-off-by: Joel Guittet <jguittet@witekio.com>
+---
+ .../src/twister_harness/device/hardware_adapter.py        | 3 ++-
+ scripts/pylib/twister/twisterlib/handlers.py              | 8 +++++---
+ 2 files changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/scripts/pylib/pytest-twister-harness/src/twister_harness/device/hardware_adapter.py b/scripts/pylib/pytest-twister-harness/src/twister_harness/device/hardware_adapter.py
+index 766218c4c0e..1c685d9b4ec 100644
+--- a/scripts/pylib/pytest-twister-harness/src/twister_harness/device/hardware_adapter.py
++++ b/scripts/pylib/pytest-twister-harness/src/twister_harness/device/hardware_adapter.py
+@@ -5,6 +5,7 @@
+ from __future__ import annotations
+ 
+ import logging
++import shlex
+ import subprocess
+ import time
+ from pathlib import Path
+@@ -187,7 +188,7 @@ class HardwareAdapter(DeviceAdapter):
+     @staticmethod
+     def _run_custom_script(script_path: str | Path, timeout: float) -> None:
+         with subprocess.Popen(
+-            str(script_path), stderr=subprocess.PIPE, stdout=subprocess.PIPE
++            shlex.split(str(script_path)), stderr=subprocess.PIPE, stdout=subprocess.PIPE
+         ) as proc:
+             try:
+                 stdout, stderr = proc.communicate(timeout=timeout)
+diff --git a/scripts/pylib/twister/twisterlib/handlers.py b/scripts/pylib/twister/twisterlib/handlers.py
+index 9686edea83c..7049b543fee 100755
+--- a/scripts/pylib/twister/twisterlib/handlers.py
++++ b/scripts/pylib/twister/twisterlib/handlers.py
+@@ -496,8 +496,10 @@ class DeviceHandler(Handler):
+                     break
+ 
+     @staticmethod
+-    def run_custom_script(script, timeout):
+-        with subprocess.Popen(script, stderr=subprocess.PIPE, stdout=subprocess.PIPE) as proc:
++    def run_custom_script(script_path: str | Path, timeout: float):
++        with subprocess.Popen(
++            shlex.split(str(script_path)), stderr=subprocess.PIPE, stdout=subprocess.PIPE
++        ) as proc:
+             try:
+                 stdout, stderr = proc.communicate(timeout=timeout)
+                 logger.debug(stdout.decode())
+@@ -507,7 +509,7 @@ class DeviceHandler(Handler):
+             except subprocess.TimeoutExpired:
+                 proc.kill()
+                 proc.communicate()
+-                logger.error(f"{script} timed out")
++                logger.error(f"{script_path} timed out")
+ 
+     def _create_flash_command(self, hardware):
+         flash_command = next(csv.reader([self.options.flash_command]))
+-- 
+2.43.0
+
+
+From a2aaa3dbf04a9c05008a0e17546ee163188a0eb3 Mon Sep 17 00:00:00 2001
+From: Joel Guittet <jguittet@witekio.com>
+Date: Wed, 17 Jun 2026 09:13:05 +0200
+Subject: [PATCH 2/4] twister: move pre-script execution before flashing and
+ connecting
+
+Depending on the `flash_before` configuration, the pre-script
+was not always called first. It's now called before flashing and
+connecting whatever the configuration is.
+
+Signed-off-by: Joel Guittet <jguittet@witekio.com>
+---
+ .../src/twister_harness/device/hardware_adapter.py           | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/scripts/pylib/pytest-twister-harness/src/twister_harness/device/hardware_adapter.py b/scripts/pylib/pytest-twister-harness/src/twister_harness/device/hardware_adapter.py
+index 1c685d9b4ec..a312f401b93 100644
+--- a/scripts/pylib/pytest-twister-harness/src/twister_harness/device/hardware_adapter.py
++++ b/scripts/pylib/pytest-twister-harness/src/twister_harness/device/hardware_adapter.py
+@@ -115,6 +115,8 @@ class HardwareAdapter(DeviceAdapter):
+ 
+     def _device_launch(self) -> None:
+         """Flash and run application on a device and connect with serial port."""
++        if self.device_config.pre_script:
++            self._run_custom_script(self.device_config.pre_script, self.base_timeout)
+         if self.device_config.flash_before:
+             # For hardware devices with shared USB or software USB, connect after flashing.
+             # Retry for up to 10 seconds for USB-CDC based devices to enumerate.
+@@ -143,9 +145,6 @@ class HardwareAdapter(DeviceAdapter):
+             logger.error(msg)
+             raise TwisterHarnessException(msg)
+ 
+-        if self.device_config.pre_script:
+-            self._run_custom_script(self.device_config.pre_script, self.base_timeout)
+-
+         if self.device_config.id:
+             logger.debug('Flashing device %s', self.device_config.id)
+         log_command(logger, 'Flashing command', self.command, level=logging.DEBUG)
+-- 
+2.43.0
+
+
+From cef541c30bed858a6515a1121ba0b3056b94f57f Mon Sep 17 00:00:00 2001
+From: Joel Guittet <jguittet@witekio.com>
+Date: Wed, 24 Jun 2026 10:33:57 +0200
+Subject: [PATCH 3/4] twister: introduce pre-flash-script option
+
+New pre-flash-script option symetric to post-flash-script.
+The scripts order is the following: pre-script, pre-flash-script,
+post-flash-script, post-script.
+
+Signed-off-by: Joel Guittet <jguittet@witekio.com>
+---
+ .../twister_harness/device/hardware_adapter.py   |  3 +++
+ .../src/twister_harness/plugin.py                |  6 ++++++
+ .../twister_harness/twister_harness_config.py    |  2 ++
+ scripts/pylib/twister/twisterlib/handlers.py     | 16 +++++++++++-----
+ scripts/pylib/twister/twisterlib/hardwaredata.py |  1 +
+ scripts/pylib/twister/twisterlib/hardwaremap.py  |  6 ++++--
+ scripts/schemas/twister/hwmap-schema.yaml        |  8 ++++++--
+ scripts/tests/twister/test_handlers.py           |  2 ++
+ scripts/tests/twister/test_hardwaremap.py        |  8 ++++++--
+ 9 files changed, 41 insertions(+), 11 deletions(-)
+
+diff --git a/scripts/pylib/pytest-twister-harness/src/twister_harness/device/hardware_adapter.py b/scripts/pylib/pytest-twister-harness/src/twister_harness/device/hardware_adapter.py
+index a312f401b93..b6afff5e7ea 100644
+--- a/scripts/pylib/pytest-twister-harness/src/twister_harness/device/hardware_adapter.py
++++ b/scripts/pylib/pytest-twister-harness/src/twister_harness/device/hardware_adapter.py
+@@ -145,6 +145,9 @@ class HardwareAdapter(DeviceAdapter):
+             logger.error(msg)
+             raise TwisterHarnessException(msg)
+ 
++        if self.device_config.pre_flash_script:
++            self._run_custom_script(self.device_config.pre_flash_script, self.base_timeout)
++
+         if self.device_config.id:
+             logger.debug('Flashing device %s', self.device_config.id)
+         log_command(logger, 'Flashing command', self.command, level=logging.DEBUG)
+diff --git a/scripts/pylib/pytest-twister-harness/src/twister_harness/plugin.py b/scripts/pylib/pytest-twister-harness/src/twister_harness/plugin.py
+index c645efa61cf..a7a74baa9db 100644
+--- a/scripts/pylib/pytest-twister-harness/src/twister_harness/plugin.py
++++ b/scripts/pylib/pytest-twister-harness/src/twister_harness/plugin.py
+@@ -116,6 +116,11 @@ def pytest_addoption(parser: pytest.Parser):
+         metavar='PATH',
+         help='Script executed before flashing and connecting to serial.'
+     )
++    twister_harness_group.addoption(
++        '--pre-flash-script',
++        metavar='PATH',
++        help='Script executed before flashing.'
++    )
+     twister_harness_group.addoption(
+         '--post-flash-script',
+         metavar='PATH',
+@@ -176,6 +181,7 @@ def _normalize_paths(config: pytest.Config) -> None:
+     config.option.twister_config = _normalize_path(config.option.twister_config)
+     config.option.pre_script = _normalize_path(config.option.pre_script)
+     config.option.post_script = _normalize_path(config.option.post_script)
++    config.option.pre_flash_script = _normalize_path(config.option.pre_flash_script)
+     config.option.post_flash_script = _normalize_path(config.option.post_flash_script)
+ 
+ 
+diff --git a/scripts/pylib/pytest-twister-harness/src/twister_harness/twister_harness_config.py b/scripts/pylib/pytest-twister-harness/src/twister_harness/twister_harness_config.py
+index 8439652ee31..8f58987bab3 100644
+--- a/scripts/pylib/pytest-twister-harness/src/twister_harness/twister_harness_config.py
++++ b/scripts/pylib/pytest-twister-harness/src/twister_harness/twister_harness_config.py
+@@ -42,6 +42,7 @@ class DeviceConfig:
+     name: str = ''
+     pre_script: Path | None = None
+     post_script: Path | None = None
++    pre_flash_script: Path | None = None
+     post_flash_script: Path | None = None
+     fixtures: list[str] = None
+     app_build_dir: Path | None = None
+@@ -145,6 +146,7 @@ class TwisterHarnessConfig:
+                 flash_command=flash_command,
+                 pre_script=get_path(config.option.pre_script) or get_path(dut.pre_script),
+                 post_script=get_path(config.option.post_script) or get_path(dut.post_script),
++                pre_flash_script=get_path(config.option.pre_flash_script) or get_path(dut.pre_flash_script),
+                 post_flash_script=get_path(config.option.post_flash_script) or get_path(dut.post_flash_script),
+                 fixtures=config.option.fixtures or test_params.twister_fixtures or dut.fixtures,
+                 extra_test_args=config.option.extra_test_args,
+diff --git a/scripts/pylib/twister/twisterlib/handlers.py b/scripts/pylib/twister/twisterlib/handlers.py
+index 7049b543fee..3828f1465d8 100755
+--- a/scripts/pylib/twister/twisterlib/handlers.py
++++ b/scripts/pylib/twister/twisterlib/handlers.py
+@@ -659,11 +659,13 @@ class DeviceHandler(Handler):
+ 
+     def handle(self, harness):
+         hardware: CompoundHardwareData = self.instance.reserved_duts[0]
+-
+-        # Run pre-script BEFORE starting serial PTY to avoid conflicts
+         pre_script = hardware.pre_script
++        pre_flash_script = hardware.pre_flash_script
++        post_flash_script = hardware.post_flash_script
++        post_script = hardware.post_script
+         script_param = hardware.script_param
+ 
++        # Run pre-script BEFORE starting serial PTY to avoid conflicts
+         if pre_script:
+             timeout = 30
+             if script_param:
+@@ -683,9 +685,6 @@ class DeviceHandler(Handler):
+ 
+         command = self._create_command(runner, hardware)
+ 
+-        post_flash_script = hardware.post_flash_script
+-        post_script = hardware.post_script
+-
+         flash_timeout = hardware.flash_timeout
+         if hardware.flash_with_test:
+             flash_timeout += self.get_test_timeout()
+@@ -718,6 +717,13 @@ class DeviceHandler(Handler):
+         d_log = f"{self.instance.build_dir}/device.log"
+         logger.debug(f'Flash command: {command}', )
+         failure_type = Handler.FailureType.NONE
++
++        if pre_flash_script:
++            timeout = 30
++            if script_param:
++                timeout = script_param.get("pre_flash_timeout", timeout)
++            self.run_custom_script(pre_flash_script, timeout)
++
+         try:
+             stdout = stderr = None
+             with subprocess.Popen(command, stderr=subprocess.PIPE, stdout=subprocess.PIPE) as proc:
+diff --git a/scripts/pylib/twister/twisterlib/hardwaredata.py b/scripts/pylib/twister/twisterlib/hardwaredata.py
+index 51654eefc67..e2f42be6ad3 100644
+--- a/scripts/pylib/twister/twisterlib/hardwaredata.py
++++ b/scripts/pylib/twister/twisterlib/hardwaredata.py
+@@ -22,6 +22,7 @@ class HardwareData:
+     runner_params: str | None = None
+     pre_script: str | None = None
+     post_script: str | None = None
++    pre_flash_script: str | None = None
+     post_flash_script: str | None = None
+     script_param: str | None = None
+     runner: str | None = None
+diff --git a/scripts/pylib/twister/twisterlib/hardwaremap.py b/scripts/pylib/twister/twisterlib/hardwaremap.py
+index 6d486b703ec..056df5a0f81 100644
+--- a/scripts/pylib/twister/twisterlib/hardwaremap.py
++++ b/scripts/pylib/twister/twisterlib/hardwaremap.py
+@@ -241,9 +241,10 @@ class HardwareMap:
+         duts = scl.yaml_load_verify(map_file, hwm_schema)
+         for dut in duts:
+             pre_script = dut.get('pre_script')
+-            script_param = dut.get('script_param')
+             post_script = dut.get('post_script')
++            pre_flash_script = dut.get('pre_flash_script')
+             post_flash_script = dut.get('post_flash_script')
++            script_param = dut.get('script_param')
+             flash_timeout = dut.get('flash_timeout') or self.options.device_flash_timeout
+             flash_with_test = dut.get('flash_with_test')
+             if flash_with_test is None:
+@@ -281,10 +282,11 @@ class HardwareMap:
+                               serial_baud=serial_baud,
+                               connected=connected,
+                               pre_script=pre_script,
+-                              flash_before=flash_before,
+                               post_script=post_script,
++                              pre_flash_script=pre_flash_script,
+                               post_flash_script=post_flash_script,
+                               script_param=script_param,
++                              flash_before=flash_before,
+                               flash_timeout=flash_timeout,
+                               flash_with_test=flash_with_test,
+                               west_flash_cmd=west_flash_cmd)
+diff --git a/scripts/schemas/twister/hwmap-schema.yaml b/scripts/schemas/twister/hwmap-schema.yaml
+index e0bf63a27e0..ab3725dac9c 100644
+--- a/scripts/schemas/twister/hwmap-schema.yaml
++++ b/scripts/schemas/twister/hwmap-schema.yaml
+@@ -30,11 +30,13 @@ items:
+       type: integer
+     serial_baud:
+       type: integer
++    pre_script:
++      type: string
+     post_script:
+       type: string
+-    post_flash_script:
++    pre_flash_script:
+       type: string
+-    pre_script:
++    post_flash_script:
+       type: string
+     fixtures:
+       type: array
+@@ -53,6 +55,8 @@ items:
+           type: integer
+         post_script_timeout:
+           type: integer
++        pre_flash_timeout:
++          type: integer
+         post_flash_timeout:
+           type: integer
+       additionalProperties: false
+diff --git a/scripts/tests/twister/test_handlers.py b/scripts/tests/twister/test_handlers.py
+index d0d8b177afa..51a280339ce 100644
+--- a/scripts/tests/twister/test_handlers.py
++++ b/scripts/tests/twister/test_handlers.py
+@@ -1168,6 +1168,7 @@ def test_devicehandler_handle(
+         serial='dummy serial',
+         pre_script='dummy pre script',
+         post_script='dummy post script',
++        pre_flash_script='dummy pre flash script',
+         post_flash_script='dummy post flash script',
+         flash_timeout=60,
+         flash_with_test=True
+@@ -1227,6 +1228,7 @@ def test_devicehandler_handle(
+ 
+     handler.run_custom_script.assert_has_calls([
+         mock.call('dummy pre script', mock.ANY),
++        mock.call('dummy pre flash script', mock.ANY),
+         mock.call('dummy post flash script', mock.ANY),
+         mock.call('dummy post script', mock.ANY)
+     ])
+diff --git a/scripts/tests/twister/test_hardwaremap.py b/scripts/tests/twister/test_hardwaremap.py
+index b1643786022..28c80920f63 100644
+--- a/scripts/tests/twister/test_hardwaremap.py
++++ b/scripts/tests/twister/test_hardwaremap.py
+@@ -52,14 +52,16 @@ TESTDATA_1 = [
+             'runner_params': ['dummy', 'runner', 'params'],
+             'pre_script': 'dummy pre script',
+             'post_script': 'dummy post script',
++            'pre_flash_script': 'dummy pre flash script',
+             'post_flash_script': 'dummy post flash script',
+             'runner': 'dummy runner',
+             'flash_timeout': 30,
+             'flash_with_test': True,
+             'script_param': {
+                 'pre_script_timeout' : 30,
+-                'post_flash_timeout' : 30,
+                 'post_script_timeout' : 30,
++                'pre_flash_timeout' : 30,
++                'post_flash_timeout' : 30,
+                 }
+         },
+         {
+@@ -73,14 +75,16 @@ TESTDATA_1 = [
+             'runner_params': ['dummy', 'runner', 'params'],
+             'pre_script': 'dummy pre script',
+             'post_script': 'dummy post script',
++            'pre_flash_script': 'dummy pre flash script',
+             'post_flash_script': 'dummy post flash script',
+             'runner': 'dummy runner',
+             'flash_timeout': 30,
+             'flash_with_test': True,
+             'script_param': {
+                 'pre_script_timeout' : 30,
+-                'post_flash_timeout' : 30,
+                 'post_script_timeout' : 30,
++                'pre_flash_timeout' : 30,
++                'post_flash_timeout' : 30,
+                 }
+         },
+         '<dummy platform (dummy product) on dummy serial>'
+-- 
+2.43.0
+
+
+From b8bb6a1a2736d5f88f035c1a5d6f5a8c00257291 Mon Sep 17 00:00:00 2001
+From: Joel Guittet <jguittet@witekio.com>
+Date: Wed, 24 Jun 2026 14:57:50 +0200
+Subject: [PATCH 4/4] doc: add twister scripts documentation
+
+Add scripts supported in the hardware map file.
+
+Signed-off-by: Joel Guittet <jguittet@witekio.com>
+---
+ doc/develop/test/twister.rst | 35 +++++++++++++++++++++++++++++++++++
+ 1 file changed, 35 insertions(+)
+
+diff --git a/doc/develop/test/twister.rst b/doc/develop/test/twister.rst
+index e74acb26458..e74f62b1e72 100644
+--- a/doc/develop/test/twister.rst
++++ b/doc/develop/test/twister.rst
+@@ -1943,6 +1943,41 @@ Both instances share the same device ID but have different serial ports, allowin
+ tests to interact with multiple cores simultaneously. Each connection
+ is handled independently with separate log files.
+ 
++Scripts
++-------
++
++Twister allows to execute custom scripts before and after the execution of the tests.
++
++Four options of the hardware map file allow specifying the path to the scripts:
++- ``pre_script``: executed before flashing and connecting to serial.
++- ``pre_flash_script``: executed before flashing.
++- ``post_flash_script``: executed after flashing.
++- ``post_script``: executed after closing serial connection.
++
++The options support passing parameters (for example ``python3 pre_script.py foo bar``).
++
++.. code-block:: yaml
++
++    - connected: true
++      id: 01
++      platform: nrf52840dk/nrf52840
++      serial: /dev/ttyACM0
++      pre_script: pre_script.sh
++      pre_flash_script: pre_flash_script.sh
++      post_flash_script: post_flash_script.sh
++      post_script: post_script.sh
++
++.. code-block:: yaml
++
++    - connected: true
++      id: 01
++      platform: nrf52840dk/nrf52840
++      serial: /dev/ttyACM0
++      pre_script: python3 pre_script.py foo bar
++      pre_flash_script: python3 pre_flash_script.py foo bar
++      post_flash_script: python3 post_flash_script.py foo bar
++      post_script: python3 post_script.py foo bar
++
+ Quarantine
+ ----------
+ 
+-- 
+2.43.0
+
