@@ -29,6 +29,9 @@ LOG_MODULE_REGISTER(mender_ncs_example, LOG_LEVEL_INF);
 
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
+#ifdef CONFIG_MCUMGR_GRP_IMG
+#include <zephyr/mgmt/mcumgr/grp/img_mgmt/img_mgmt.h>
+#endif /* CONFIG_MCUMGR_GRP_IMG */
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/net_mgmt.h>
 #ifdef CONFIG_WIFI
@@ -48,6 +51,22 @@ LOG_MODULE_REGISTER(mender_ncs_example, LOG_LEVEL_INF);
 
 #ifdef CONFIG_NET_SOCKETS_SOCKOPT_TLS
 #include <zephyr/net/tls_credentials.h>
+
+#ifdef CONFIG_EXAMPLE_USE_CUSTOM_CERTIFICATE
+
+/*
+ * Certificate must be retrieved in DER format.
+ * It is converted to include file in application CMakeLists.txt.
+ */
+#ifdef CONFIG_TLS_CREDENTIAL_FILENAMES
+static const unsigned char ca_certificate_primary[] = "mender.der";
+#else
+static const unsigned char ca_certificate_primary[] = {
+#include "mender.der.inc"
+};
+#endif /* CONFIG_TLS_CREDENTIAL_FILENAMES */
+
+#else
 
 /*
  * Amazon Root CA 1 certificate, retrieved from https://www.amazontrust.com/repository in DER format.
@@ -75,6 +94,8 @@ static const unsigned char ca_certificate_secondary[] = {
 };
 #endif /* CONFIG_TLS_CREDENTIAL_FILENAMES */
 #endif /* (0 != CONFIG_MENDER_NET_CA_CERTIFICATE_TAG_SECONDARY) */
+
+#endif /* CONFIG_EXAMPLE_USE_CUSTOM_CERTIFICATE */
 
 #endif /* CONFIG_NET_SOCKETS_SOCKOPT_TLS */
 
@@ -612,12 +633,35 @@ main(void) {
              linkaddr->addr[5]);
     LOG_INF("MAC address of the device '%s'", mac_address);
 
+#ifdef CONFIG_MCUMGR_GRP_IMG
     /* Retrieve running version of the device */
+    struct image_version image_version;
+    img_mgmt_my_version(&image_version);
+    LOG_INF("Running project '%s' version '%d.%d.%d+%d'",
+            PROJECT_NAME,
+            image_version.iv_major,
+            image_version.iv_minor,
+            image_version.iv_revision,
+            image_version.iv_build_num);
+#else
+    /* Print version of the device */
     LOG_INF("Running project '%s' version '%s'", PROJECT_NAME, APP_VERSION_STRING);
+#endif /* CONFIG_MCUMGR_GRP_IMG */
 
     /* Compute artifact name */
     char artifact_name[128];
+#ifdef CONFIG_MCUMGR_GRP_IMG
+    snprintf(artifact_name,
+             sizeof(artifact_name),
+             "%s-v%d.%d.%d+%d",
+             CONFIG_EXAMPLE_ARTIFACT_NAME_PREFIX,
+             image_version.iv_major,
+             image_version.iv_minor,
+             image_version.iv_revision,
+             image_version.iv_build_num);
+#else
     snprintf(artifact_name, sizeof(artifact_name), "%s-v%s", CONFIG_EXAMPLE_ARTIFACT_NAME_PREFIX, APP_VERSION_STRING);
+#endif /* CONFIG_MCUMGR_GRP_IMG */
 
     /* Retrieve device type */
     char *device_type = CONFIG_EXAMPLE_DEVICE_TYPE;
